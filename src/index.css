@@ -1,0 +1,466 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Surchi Deep Navy & Cyan Glow Theme Palette */
+  --color-elegant-bg: #000000;
+  --color-elegant-surface: #000000;
+  --color-elegant-surface-hover: #0A0A0A;
+  --color-elegant-border: rgba(34, 211, 238, 0.03);
+  --color-elegant-border-light: rgba(34, 211, 238, 0.05);
+  --color-elegant-gold: #22D3EE;
+  --color-elegant-gold-hover: #00E5FF;
+  --color-elegant-text-primary: #F1F5F9;
+  --color-elegant-text-secondary: #94A3B8;
+}
+
+/* Custom scrollbar matching Surchi Deep Navy styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.25);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.35);
+}
+
+/* Elegant visual enhancements */
+.gold-glow {
+}
+
+.card-gold-border {
+  border-image: linear-gradient(to bottom, var(--color-elegant-gold) 0%, transparent 100%) 1;
+}
+
+/* Cyber Glow Accent Overrides & Theme-Specific Dark Backgrounds */
+.theme-cyan {
+  --color-elegant-bg: #030712;
+  --color-elegant-surface: #0b0f19;
+  --color-elegant-surface-hover: #111827;
+  --color-elegant-border: rgba(34, 211, 238, 0.03);
+  --color-elegant-border-light: rgba(34, 211, 238, 0.05);
+  --color-elegant-gold: #22D3EE;
+  --color-elegant-gold-hover: #00E5FF;
+}
+
+.theme-gold {
+  --color-elegant-bg: #080704;
+  --color-elegant-surface: #14110b;
+  --color-elegant-surface-hover: #1c1810;
+  --color-elegant-border: rgba(234, 179, 8, 0.03);
+  --color-elegant-border-light: rgba(234, 179, 8, 0.05);
+  --color-elegant-gold: #EAB308;
+  --color-elegant-gold-hover: #FACC15;
+}
+
+.theme-green {
+  --color-elegant-bg: #030604;
+  --color-elegant-surface: #09120c;
+  --color-elegant-surface-hover: #0f1f14;
+  --color-elegant-border: rgba(34, 197, 94, 0.03);
+  --color-elegant-border-light: rgba(34, 197, 94, 0.05);
+  --color-elegant-gold: #22C55E;
+  --color-elegant-gold-hover: #4ADE80;
+}
+
+.theme-ruby {
+  --color-elegant-bg: #060203;
+  --color-elegant-surface: #14090b;
+  --color-elegant-surface-hover: #1e0e11;
+  --color-elegant-border: rgba(239, 68, 68, 0.03);
+  --color-elegant-border-light: rgba(239, 68, 68, 0.05);
+  --color-elegant-gold: #EF4444;
+  --color-elegant-gold-hover: #F87171;
+}
+
+/* Light mode variables and theme-specific backgrounds */
+.mode-light {
+  --color-elegant-text-primary: #0F172A;
+  --color-elegant-text-secondary: #475569;
+}
+
+.mode-light.theme-cyan {
+  --color-elegant-bg: #f0f9ff;
+  --color-elegant-surface: #ffffff;
+  --color-elegant-surface-hover: #e0f2fe;
+  --color-elegant-border: rgba(8, 145, 178, 0.03);
+  --color-elegant-border-light: rgba(8, 145, 178, 0.02);
+  --color-elegant-gold: #0891B2;
+  --color-elegant-gold-hover: #0e7490;
+}
+
+.mode-light.theme-gold {
+  --color-elegant-bg: #fefbeb;
+  --color-elegant-surface: #ffffff;
+  --color-elegant-surface-hover: #fef3c7;
+  --color-elegant-border: rgba(217, 119, 6, 0.03);
+  --color-elegant-border-light: rgba(217, 119, 6, 0.02);
+  --color-elegant-gold: #D97706;
+  --color-elegant-gold-hover: #b45309;
+}
+
+.mode-light.theme-green {
+  --color-elegant-bg: #f0fdf4;
+  --color-elegant-surface: #ffffff;
+  --color-elegant-surface-hover: #dcfce7;
+  --color-elegant-border: rgba(22, 163, 74, 0.03);
+  --color-elegant-border-light: rgba(22, 163, 74, 0.02);
+  --color-elegant-gold: #16A34A;
+  --color-elegant-gold-hover: #15803d;
+}
+
+.mode-light.theme-ruby {
+  --color-elegant-bg: #fff5f5;
+  --color-elegant-surface: #ffffff;
+  --color-elegant-surface-hover: #fee2e2;
+  --color-elegant-border: rgba(220, 38, 38, 0.03);
+  --color-elegant-border-light: rgba(220, 38, 38, 0.02);
+  --color-elegant-gold: #DC2626;
+  --color-elegant-gold-hover: #b91c1c;
+}
+
+/* Scrollbar Light Mode Overrides */
+.mode-light ::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+
+.mode-light ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+}
+
+.mode-light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+/* Light mode high-contrast text adaptation */
+.mode-light .text-white {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-slate-100 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-zinc-100 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-gray-100 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-slate-200,
+.mode-light .text-zinc-200,
+.mode-light .text-gray-200,
+.mode-light .text-neutral-200 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-slate-300,
+.mode-light .text-zinc-300,
+.mode-light .text-gray-300,
+.mode-light .text-neutral-300 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-slate-400,
+.mode-light .text-zinc-400,
+.mode-light .text-gray-400,
+.mode-light .text-neutral-400 {
+  color: var(--color-elegant-text-secondary) !important;
+}
+
+.mode-light .text-slate-500,
+.mode-light .text-zinc-500,
+.mode-light .text-gray-500,
+.mode-light .text-neutral-500 {
+  color: var(--color-elegant-text-secondary) !important;
+}
+
+.mode-light .text-slate-600,
+.mode-light .text-zinc-600,
+.mode-light .text-gray-600,
+.mode-light .text-neutral-600 {
+  color: #1e293b !important;
+}
+
+/* Attribute-based safety overrides for any dynamically constructed or compiled white/light text classes */
+.mode-light [class*="text-white"] {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light [class*="text-slate-50"],
+.mode-light [class*="text-slate-100"],
+.mode-light [class*="text-slate-200"],
+.mode-light [class*="text-slate-300"],
+.mode-light [class*="text-zinc-50"],
+.mode-light [class*="text-zinc-100"],
+.mode-light [class*="text-zinc-200"],
+.mode-light [class*="text-zinc-300"],
+.mode-light [class*="text-gray-50"],
+.mode-light [class*="text-gray-100"],
+.mode-light [class*="text-gray-200"],
+.mode-light [class*="text-gray-300"],
+.mode-light [class*="text-neutral-50"],
+.mode-light [class*="text-neutral-100"],
+.mode-light [class*="text-neutral-200"],
+.mode-light [class*="text-neutral-300"] {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+/* High contrast overrides for white text with opacity */
+.mode-light [class*="text-white/9"],
+.mode-light [class*="text-white/8"],
+.mode-light [class*="text-white/7"],
+.mode-light [class*="text-white/6"] {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light [class*="text-white/5"],
+.mode-light [class*="text-white/4"],
+.mode-light [class*="text-white/3"] {
+  color: var(--color-elegant-text-secondary) !important;
+}
+
+.mode-light [class*="text-white/2"],
+.mode-light [class*="text-white/1"] {
+  color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Ensure hover states targeting white transition to accent theme color instead of breaking readability */
+.mode-light .hover\:text-white:hover,
+.mode-light .hover\:text-slate-100:hover,
+.mode-light .hover\:text-zinc-100:hover,
+.mode-light .hover\:text-gray-100:hover,
+.mode-light .hover\:text-slate-200:hover,
+.mode-light .hover\:text-zinc-200:hover,
+.mode-light .hover\:text-gray-200:hover,
+.mode-light [class*="hover:text-white"]:hover,
+.mode-light [class*="hover:text-slate-1"]:hover,
+.mode-light [class*="hover:text-zinc-1"]:hover,
+.mode-light [class*="hover:text-gray-1"]:hover {
+  color: var(--color-elegant-gold) !important;
+}
+
+/* Override legacy text opacity modifiers specifically */
+.mode-light .text-white\/95,
+.mode-light .text-white\/90,
+.mode-light .text-white\/85,
+.mode-light .text-white\/80 {
+  color: var(--color-elegant-text-primary) !important;
+}
+
+.mode-light .text-white\/75,
+.mode-light .text-white\/70,
+.mode-light .text-white\/65,
+.mode-light .text-white\/60,
+.mode-light .text-white\/50 {
+  color: var(--color-elegant-text-secondary) !important;
+}
+
+.mode-light .text-white\/45,
+.mode-light .text-white\/40,
+.mode-light .text-white\/30,
+.mode-light .text-white\/20,
+.mode-light .text-white\/10 {
+  color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Ensure colored texts are high-contrast and readable in light mode */
+.mode-light .text-emerald-400 {
+  color: #15803d !important; /* High-contrast emerald-700 */
+}
+
+.mode-light .text-red-400 {
+  color: #b91c1c !important; /* High-contrast red-700 */
+}
+
+.mode-light .text-amber-400 {
+  color: #b45309 !important; /* High-contrast amber-700 */
+}
+
+.mode-light .text-blue-400 {
+  color: #1d4ed8 !important; /* High-contrast blue-700 */
+}
+
+.mode-light .text-cyan-400 {
+  color: #0e7490 !important; /* High-contrast cyan-700 */
+}
+
+.mode-light .text-violet-400,
+.mode-light .text-purple-400 {
+  color: #7e22ce !important; /* High-contrast purple-700 */
+}
+
+/* Background pill overrides for stats tags in light mode */
+.mode-light .bg-emerald-950\/40,
+.mode-light .bg-emerald-950 {
+  background-color: rgba(22, 163, 74, 0.1) !important;
+  border-color: rgba(22, 163, 74, 0.25) !important;
+}
+
+.mode-light .bg-red-950\/40,
+.mode-light .bg-red-950 {
+  background-color: rgba(220, 38, 38, 0.1) !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+.mode-light .bg-amber-950\/40,
+.mode-light .bg-amber-950 {
+  background-color: rgba(217, 119, 6, 0.1) !important;
+  border-color: rgba(217, 119, 6, 0.25) !important;
+}
+
+.mode-light .bg-blue-950\/40,
+.mode-light .bg-blue-950 {
+  background-color: rgba(37, 99, 235, 0.1) !important;
+  border-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+.mode-light .bg-cyan-950\/40,
+.mode-light .bg-cyan-950 {
+  background-color: rgba(8, 145, 178, 0.1) !important;
+  border-color: rgba(8, 145, 178, 0.25) !important;
+}
+
+.mode-light .bg-black {
+  background-color: var(--color-elegant-surface) !important;
+}
+
+.mode-light .bg-elegant-bg\/80 {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+
+.mode-light .bg-elegant-surface\/40 {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* TradingView Chart Hardcoded Color Overrides for Light Mode */
+.mode-light .bg-\[\#11141c\] {
+  background-color: var(--color-elegant-surface) !important;
+}
+.mode-light .border-\[\#1a1e29\] {
+  border-color: var(--color-elegant-border) !important;
+}
+.mode-light .bg-\[\#0c0f16\] {
+  background-color: var(--color-elegant-bg) !important;
+}
+.mode-light .bg-\[\#1a1e29\] {
+  background-color: var(--color-elegant-surface-hover) !important;
+}
+.mode-light .text-\[\#9ca3af\] {
+  color: var(--color-elegant-text-secondary) !important;
+}
+.mode-light .bg-\[\#0c0f16\]\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+.mode-light .bg-\[\#0c0f16\]\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Footer & Transparency Overrides in Light Mode */
+.mode-light .text-\[rgba\(255\,255\,255\,0\.4\)\] {
+  color: var(--color-elegant-text-secondary) !important;
+}
+.mode-light .text-\[rgba\(255\,255\,255\,0\.75\)\] {
+  color: var(--color-elegant-text-primary) !important;
+}
+.mode-light .bg-\[rgba\(255\,255\,255\,0\.08\)\] {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+}
+.mode-light .text-\[rgba\(255\,255\,255\,0\.6\)\] {
+  color: var(--color-elegant-text-secondary) !important;
+}
+.mode-light .hover\:bg-\[rgba\(255\,255\,255\,0\.15\)\]:hover {
+  background-color: rgba(15, 23, 42, 0.15) !important;
+}
+.mode-light .hover\:text-white:hover {
+  color: var(--color-elegant-gold) !important;
+}
+
+/* Input Placeholder Adaptation for Light Mode */
+.mode-light input::placeholder,
+.mode-light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Smooth transitions for theme switching */
+body, 
+div, 
+header, 
+footer, 
+aside, 
+main, 
+section, 
+table, 
+tr, 
+th, 
+td, 
+input, 
+button, 
+select, 
+span, 
+h1, 
+h2, 
+h3, 
+h4, 
+p, 
+a {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 380px) {
+  .footer-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Reduced visibility container line styles */
+.border-elegant-border,
+.border-elegant-border-light,
+[class*="border-zinc-800"],
+[class*="border-zinc-700"],
+[class*="border-slate-800"],
+[class*="border-slate-700"],
+[class*="border-gray-800"],
+[class*="border-gray-700"],
+[class*="border-white/10"],
+[class*="border-white/20"],
+[class*="border-cyan-500/20"] {
+  border-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+.mode-light .border-elegant-border,
+.mode-light .border-elegant-border-light,
+.mode-light [class*="border-zinc-800"],
+.mode-light [class*="border-zinc-700"],
+.mode-light [class*="border-slate-800"],
+.mode-light [class*="border-slate-700"],
+.mode-light [class*="border-gray-800"],
+.mode-light [class*="border-gray-700"],
+.mode-light [class*="border-white/10"],
+.mode-light [class*="border-white/20"],
+.mode-light [class*="border-cyan-500/20"] {
+  border-color: rgba(0, 0, 0, 0.035) !important;
+}
+
+

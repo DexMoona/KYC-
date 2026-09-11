@@ -1,0 +1,40 @@
+{
+  "name": "SURCHI Test Token",
+  "symbol": "SURCHI",
+  "description": "Test decentralized token created with SURCHI",
+  "image": "https://ais-dev-tn3mpuqmeaksv5dipoik47-151553856660.europe-west3.run.app/uploads/tokens/test.png",
+  "external_url": "https://surchi.xyz",
+  "attributes": [
+    {
+      "trait_type": "Created With",
+      "value": "SURCHI Solana Token Creator"
+    },
+    {
+      "trait_type": "Decimals",
+      "value": 9
+    },
+    {
+      "trait_type": "Initial Supply",
+      "value": "1000000"
+    },
+    {
+      "trait_type": "Creation Network",
+      "value": "Solana"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://ais-dev-tn3mpuqmeaksv5dipoik47-151553856660.europe-west3.run.app/uploads/tokens/test.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image",
+    "creators": []
+  },
+  "extensions": {
+    "website": "https://surchi.xyz",
+    "twitter": "",
+    "telegram": ""
+  }
+}

@@ -1,0 +1,682 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  BarChart3, 
+  Search, 
+  Users, 
+  Wallet, 
+  Newspaper, 
+  Settings, 
+  Menu, 
+  X, 
+  Sparkles, 
+  Zap, 
+  ShieldAlert, 
+  DollarSign,
+  ShieldCheck,
+  Sun,
+  Moon,
+  Palette,
+  BookOpen,
+  Terminal,
+  Compass,
+  GraduationCap,
+  ExternalLink,
+  Twitter,
+  Send,
+  MessageSquare,
+  Github,
+  BookOpenText,
+  Coins
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import DashboardView from './components/DashboardView';
+import ScreenerView from './components/ScreenerView';
+import PairDetailsView from './components/PairDetailsView';
+import WhalesView from './components/WhalesView';
+import PortfolioView from './components/PortfolioView';
+import NewsView from './components/NewsView';
+import AdminView from './components/AdminView';
+import SurchiLogo from './components/SurchiLogo';
+import AuditorView from './components/AuditorView';
+import AppFooter from './components/AppFooter';
+import TokenCreatorView from './components/TokenCreatorView';
+import { Token } from './types';
+
+type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' | 'news' | 'admin' | 'auditor' | 'token-creator';
+
+export default function App() {
+  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const [selectedTokenAddress, setSelectedTokenAddress] = useState<string | null>(null);
+  
+  // Theme state
+  const [theme, setTheme] = useState<'cyan' | 'gold' | 'green' | 'ruby'>(() => {
+    return (localStorage.getItem('surchi-theme') as 'cyan' | 'gold' | 'green' | 'ruby') || 'cyan';
+  });
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('surchi-dark-mode');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const [showThemePanel, setShowThemePanel] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('surchi-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('surchi-dark-mode', String(isDarkMode));
+  }, [isDarkMode]);
+
+  // Search state passed between panels
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0 });
+  }, [activeView, selectedTokenAddress]);
+  
+  // Premium level (Always unlocked)
+  const isPro = true;
+  
+  // Mobile menu toggle
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleGoHome = () => {
+    setActiveView('dashboard');
+    setSelectedTokenAddress(null);
+    setMobileMenuOpen(false);
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToToken = (address: string) => {
+    setSelectedTokenAddress(address);
+    setActiveView('details');
+  };
+
+  const handleGlobalSearch = (query: string) => {
+    // If it looks like a contract address, navigate directly
+    const trimmed = query.trim();
+    const isEvm = /^0x[a-fA-F0-9]{40}$/i.test(trimmed);
+    const isSol = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(trimmed);
+    if (isEvm || isSol) {
+      navigateToToken(trimmed);
+    } else {
+      setSearchQuery(query);
+      setActiveView('screener');
+    }
+  };
+
+  return (
+    <div className={`theme-${theme} ${isDarkMode ? 'mode-dark text-slate-100' : 'mode-light text-slate-900'} bg-elegant-bg min-h-screen text-elegant-text-primary flex flex-col font-sans select-none antialiased`}>
+
+
+      {/* Main Container Wrapper */}
+      <div className="flex flex-1 relative">
+        
+        {/* Desktop Left Sidebar Panel */}
+        <aside className="hidden lg:flex flex-col w-64 bg-elegant-surface border-r border-elegant-border p-5 space-y-6 shrink-0 justify-between">
+          <div className="space-y-6">
+            
+            {/* Branding Header */}
+            <button
+              type="button"
+              onClick={handleGoHome}
+              className="flex items-center space-x-2 pb-4 border-b border-elegant-border w-full text-left group cursor-pointer transition-opacity hover:opacity-90"
+              title="Go to Home Dashboard"
+              aria-label="SURCHI Home"
+            >
+              <SurchiLogo size={32} className="group-hover:scale-105 transition-transform duration-200" />
+              <div>
+                <h2 className="text-white font-extrabold text-sm tracking-tight font-sans group-hover:text-elegant-gold transition-colors">SURCHI</h2>
+                <div className="flex items-center space-x-1 mt-0.5">
+                  <span className="text-[9px] text-elegant-text-secondary font-mono">DEX LEDGER ENGINE</span>
+                  {isPro && (
+                    <span className="text-[8px] bg-elegant-gold/10 text-elegant-gold border border-elegant-gold/30 px-1 rounded font-bold">
+                      PRO
+                    </span>
+                  )}
+                </div>
+              </div>
+            </button>
+
+            {/* Menu options */}
+            <nav className="space-y-1">
+              <span className="text-gray-600 text-[10px] font-mono font-bold uppercase block px-3 mb-2 tracking-wider">WORKSPACE</span>
+              <button
+                onClick={() => { setActiveView('dashboard'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'dashboard' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <Zap className="w-4 h-4 shrink-0" />
+                <span>Home Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveView('screener'); setSearchQuery(''); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'screener' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 shrink-0" />
+                <span>Token Screener</span>
+              </button>
+              <button
+                onClick={() => { setActiveView('auditor'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'auditor' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>Contract Auditor</span>
+              </button>
+              <button
+                onClick={() => { setActiveView('whales'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'whales' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <Users className="w-4 h-4 shrink-0" />
+                <span>Smart Money Tracker</span>
+              </button>
+              <button
+                onClick={() => { setActiveView('portfolio'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'portfolio' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <Wallet className="w-4 h-4 shrink-0" />
+                <span>Portfolio Hub</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveView('token-creator'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'token-creator' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <Coins className="w-4 h-4 shrink-0" />
+                <span>Create Solana Token</span>
+              </button>
+              
+              <span className="text-gray-600 text-[10px] font-mono font-bold uppercase block px-3 pt-5 mb-2 tracking-wider">MARKET CALENDARS</span>
+              <button
+                onClick={() => { setActiveView('news'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide cursor-pointer ${
+                  activeView === 'news' ? 'bg-elegant-gold text-elegant-bg shadow-[0_0_10px_rgba(197,168,128,0.15)] font-bold' : 'text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover'
+                }`}
+              >
+                <Newspaper className="w-4 h-4 shrink-0" />
+                <span>Sentiment & Calendar</span>
+              </button>
+
+              <span className="text-gray-600 text-[10px] font-mono font-bold uppercase block px-3 pt-5 mb-2 tracking-wider">DOCS & RESOURCES</span>
+              <a
+                href="https://whitepaper.surchi.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <BookOpen className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>White Docs</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <a
+                href="https://explorer.surchi.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Terminal className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>Surchi Terminal</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <a
+                href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Compass className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>Explorer</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <a
+                href="https://academy.binance.com/en/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <GraduationCap className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>Academy</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </a>
+
+
+            </nav>
+          </div>
+
+          {/* Surchi Active status info */}
+          <div className="bg-elegant-surface border border-elegant-border p-4 rounded-xl text-xs space-y-2">
+            <div className="flex items-center space-x-1 text-elegant-gold font-bold font-mono uppercase text-[10px] gold-glow">
+              <Sparkles className="w-3.5 h-3.5" /> SURCHI AI Engine
+            </div>
+            <p className="text-elegant-text-secondary leading-relaxed font-sans text-[11px]">
+              Fully unlocked access enabled. All advanced contract audits, portfolio analytics, and premium layers are available.
+            </p>
+          </div>
+        </aside>
+
+        {/* Mobile Navigation Header */}
+        <header className="lg:hidden absolute top-0 left-0 w-full h-16 bg-elegant-surface border-b border-elegant-border px-4 flex items-center justify-between z-20">
+          <button
+            type="button"
+            onClick={handleGoHome}
+            className="flex items-center space-x-2 cursor-pointer group text-left hover:opacity-90 transition-opacity"
+            title="Go to Home Dashboard"
+            aria-label="SURCHI Home"
+          >
+            <SurchiLogo size={28} className="group-hover:scale-105 transition-transform duration-200" />
+            <span className="text-white font-bold text-sm tracking-tight group-hover:text-elegant-gold transition-colors">SURCHI</span>
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 text-white hover:text-elegant-gold transition-colors cursor-pointer rounded-lg hover:bg-white/5"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu className="w-6 h-6 text-white" />
+          </button>
+        </header>
+
+        {/* Mobile Left-Side White Navigation Drawer */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <div className="fixed inset-0 z-50 flex lg:hidden">
+              {/* Backdrop covering right side of screen */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setMobileMenuOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+                aria-label="Close backdrop"
+              />
+
+              {/* Large White Drawer */}
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="relative z-10 w-[84vw] max-w-[340px] bg-white text-slate-900 h-full shadow-2xl flex flex-col justify-between overflow-hidden"
+              >
+                {/* Drawer Header */}
+                <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleGoHome}
+                    className="flex items-center space-x-2.5 cursor-pointer group text-left hover:opacity-90 transition-opacity"
+                    title="Go to Home Dashboard"
+                    aria-label="SURCHI Home"
+                  >
+                    <SurchiLogo size={28} className="group-hover:scale-105 transition-transform duration-200" />
+                    <span className="text-slate-950 font-bold text-base tracking-tight font-sans group-hover:text-amber-700 transition-colors">SURCHI</span>
+                  </button>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                    aria-label="Close navigation"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Drawer Content Body */}
+                <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+                  {/* Primary Navigation Section */}
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => { setActiveView('dashboard'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'dashboard'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <Zap className={`w-4 h-4 shrink-0 ${activeView === 'dashboard' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Home Dashboard</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('screener'); setSearchQuery(''); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'screener'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <BarChart3 className={`w-4 h-4 shrink-0 ${activeView === 'screener' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Screener</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('auditor'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'auditor'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <ShieldCheck className={`w-4 h-4 shrink-0 ${activeView === 'auditor' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Contract Auditor</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('whales'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'whales'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <Users className={`w-4 h-4 shrink-0 ${activeView === 'whales' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Whales</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('portfolio'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'portfolio'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <Wallet className={`w-4 h-4 shrink-0 ${activeView === 'portfolio' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Portfolio</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('news'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'news'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <Newspaper className={`w-4 h-4 shrink-0 ${activeView === 'news' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <span>Sentiment News</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveView('token-creator'); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
+                        activeView === 'token-creator'
+                          ? 'bg-slate-100 text-slate-950 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                      }`}
+                    >
+                      <span className="text-base shrink-0">🪙</span>
+                      <span>Create Solana Token</span>
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="py-2">
+                    <hr className="border-slate-100" />
+                  </div>
+
+                  {/* Secondary Navigation Section */}
+                  <div className="space-y-1">
+                    <a
+                      href="https://whitepaper.surchi.xyz/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span>White Docs</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                    </a>
+
+                    <a
+                      href="https://explorer.surchi.xyz/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span>Surchi Terminal</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                    </a>
+
+                    <a
+                      href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <Compass className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span>Explorer</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                    </a>
+
+                    <a
+                      href="https://academy.binance.com/en/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <GraduationCap className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span>Academy</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
+                    </a>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="py-2">
+                    <hr className="border-slate-100" />
+                  </div>
+
+                  {/* Bottom Resources & Community Section (Reference layout) */}
+                  <div className="space-y-1">
+                    <div className="px-3 pt-1 pb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Resources & Community
+                    </div>
+                    
+                    <a
+                      href="https://GitHub.com/surchiai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Github className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>GitHub</span>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
+                    </a>
+
+                    <a
+                      href="https://x.com/suchicoin"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Twitter className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>Twitter</span>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
+                    </a>
+
+                    <a
+                      href="https://t.me/Surchicommunity"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Send className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>Telegram</span>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
+                    </a>
+
+                    <a
+                      href="https://medium.com/@surchicoin"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <BookOpenText className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>Medium</span>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
+                    </a>
+
+                    <a
+                      href="https://discord.gg/uH2Jp3yu5h"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <MessageSquare className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>Discord</span>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Drawer Subtle Footer */}
+                <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 shrink-0 font-mono">
+                  <span>SURCHI AI</span>
+                  <span>v2.4</span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Workspace core panels routing */}
+        <main ref={mainRef} className="flex-1 bg-elegant-bg p-4 sm:p-6 lg:p-8 overflow-y-auto mt-16 lg:mt-0 max-w-7xl mx-auto w-full">
+          {activeView === 'dashboard' && (
+            <DashboardView 
+              onSelectToken={navigateToToken} 
+              onSearch={handleGlobalSearch} 
+            />
+          )}
+
+          {activeView === 'screener' && (
+            <ScreenerView 
+              onSelectToken={navigateToToken} 
+              initialQuery={searchQuery} 
+              onClose={() => setActiveView('dashboard')}
+            />
+          )}
+
+          {activeView === 'details' && selectedTokenAddress && (
+            <PairDetailsView 
+              tokenAddress={selectedTokenAddress} 
+              onBack={() => { setSelectedTokenAddress(null); setActiveView('screener'); }}
+            />
+          )}
+
+          {activeView === 'whales' && (
+            <WhalesView 
+              onSelectToken={navigateToToken} 
+            />
+          )}
+
+          {activeView === 'portfolio' && (
+            <PortfolioView />
+          )}
+
+          {activeView === 'news' && (
+            <NewsView />
+          )}
+
+          {activeView === 'admin' && (
+            <AdminView />
+          )}
+
+          {activeView === 'auditor' && (
+            <AuditorView 
+              onBackToEcosystem={() => { setActiveView('dashboard'); }}
+              onSelectToken={navigateToToken}
+            />
+          )}
+
+          {activeView === 'token-creator' && (
+            <TokenCreatorView onClose={() => setActiveView('dashboard')} />
+          )}
+
+          {/* Surchi Ecosystem Footer */}
+          <AppFooter 
+            currentView={activeView}
+            onNavigate={(view) => {
+              setActiveView(view);
+              const scrollContainer = mainRef.current || window;
+              scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            }} 
+          />
+        </main>
+
+      </div>
+
+      {/* Floating Theme Switcher Button (Direct Light / Dark Mode Toggle) */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <button
+          onClick={() => setIsDarkMode(prev => !prev)}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-elegant-surface hover:bg-elegant-surface-hover border border-elegant-border hover:border-elegant-gold text-white hover:scale-105 active:scale-95 shadow-xl shadow-black/50 transition-all cursor-pointer"
+          title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          id="floating-theme-switch-btn"
+          aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDarkMode ? (
+            <Sun className="w-5 h-5 text-amber-400 hover:rotate-45 transition-transform" />
+          ) : (
+            <Moon className="w-5 h-5 text-indigo-400 hover:-rotate-12 transition-transform" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
