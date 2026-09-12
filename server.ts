@@ -578,7 +578,7 @@ async function fetchCoinGeckoTrending() {
   // --- 3. GECKOTERMINAL TRENDING POOLS ---
   try {
     console.log('[DEXPulse Backend] DexScreener failed. Failing over to GeckoTerminal Trending Pools...');
-    const gtRes = await fetchWithDiagnostics('https://api.geckoterminal.com/api/v2/networks/solana/trending_pools', {}, 3000, 'GeckoTerminal Trending Pools');
+    const gtRes = await fetchWithDiagnostics('https://api.geckoterminal.com/api/v2/networks/solana/trending_pools', {}, 8000, 'GeckoTerminal Trending Pools');
     if (gtRes.ok) {
       const gtData = await gtRes.json();
       if (gtData && Array.isArray(gtData.data) && gtData.data.length > 0) {
@@ -608,8 +608,10 @@ async function fetchCoinGeckoTrending() {
     } else {
       console.warn(`[DEXPulse Backend] GeckoTerminal pools returned status ${gtRes.status}`);
     }
-  } catch (err) {
-    console.error('[DEXPulse Backend] GeckoTerminal fetch failed:', err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.error('[DEXPulse Backend] GeckoTerminal fetch failed:', err);
+    }
   }
 
   // --- 4. BIRDEYE TRENDING (IF KEY SET) ---
@@ -4208,7 +4210,7 @@ async function fetchGeckoTerminalOHLCV(network: string, poolAddress: string, tim
     else if (timeframe === '1d') { gtTf = 'day'; aggregate = 1; }
 
     const url = `https://api.geckoterminal.com/api/v2/networks/${network}/pools/${poolAddress}/ohlcv/${gtTf}?aggregate=${aggregate}&limit=100`;
-    const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 3500);
+    const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 8000);
     if (res.ok) {
       const data = await res.json();
       const ohlcvList = data?.data?.attributes?.ohlcv_list;
@@ -4427,7 +4429,7 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
           'Accept': 'application/json'
         }
       },
-      3000
+      8000
     );
 
     if (tradesRes.ok) {
@@ -4492,8 +4494,10 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
         });
       }
     }
-  } catch (err) {
-    console.warn(`[Live DEX Transactions] GeckoTerminal fetch failed for ${symbol} (${pairAddress}):`, err);
+  } catch (err: any) {
+    if (err?.name !== 'AbortError') {
+      console.warn(`[Live DEX Transactions] GeckoTerminal fetch failed for ${symbol} (${pairAddress}):`, err);
+    }
   }
 
   // 3. Fallback: If GeckoTerminal was rate-limited (429) or empty, query RPC logs (Solana / EVM) for real transaction signatures

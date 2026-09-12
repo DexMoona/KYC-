@@ -41,6 +41,7 @@ import AuditorView from './components/AuditorView';
 import AppFooter from './components/AppFooter';
 import TokenCreatorView from './components/TokenCreatorView';
 import WalletModal from './components/WalletModal';
+import SplashScreen from './components/SplashScreen';
 import { useSolanaWallet } from './context/SolanaWalletContext';
 import { Token } from './types';
 
@@ -48,6 +49,7 @@ type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' 
 
 export default function App() {
   const { connectedWallet } = useSolanaWallet();
+  const [showSplash, setShowSplash] = useState(true);
 
   const [activeView, setActiveView] = useState<ActiveView>(() => {
     if (typeof window !== 'undefined') {
@@ -132,7 +134,9 @@ export default function App() {
   };
 
   return (
-    <div className={`theme-${theme} ${isDarkMode ? 'mode-dark text-slate-100' : 'mode-light text-slate-900'} bg-elegant-bg min-h-screen text-elegant-text-primary flex flex-col font-sans select-none antialiased`}>
+    <>
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      <div className={`theme-${theme} ${isDarkMode ? 'mode-dark text-slate-100' : 'mode-light text-slate-900'} bg-elegant-bg min-h-screen text-elegant-text-primary flex flex-col font-sans select-none antialiased`}>
 
 
       {/* Main Container Wrapper */}
@@ -591,7 +595,7 @@ export default function App() {
 
                 {/* Drawer Subtle Footer */}
                 <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex items-center justify-center text-[11px] text-elegant-text-secondary shrink-0 font-mono">
-                  <span>powered by SURCHI PROTOCOL</span>
+                  <span>POWERED BY SURCHI ECOSYSTEM</span>
                 </div>
               </motion.div>
             </div>
@@ -692,5 +696,6 @@ export default function App() {
         }}
       />
     </div>
+    </>
   );
 }
