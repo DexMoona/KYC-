@@ -174,7 +174,7 @@ export async function executeRealSplTokenCreation(
     throw new Error('Wallet is not connected. Please connect Phantom or Solflare.');
   }
 
-  const rawSupply = calculateRawSupply(formData.supply, formData.decimals);
+  const rawSupply = calculateRawSupply(formData.supply, formData.decimals === '' ? 9 : formData.decimals);
   const feeWalletPubkey = new PublicKey(feeWalletAddress);
   const feeLamports = BigInt(Math.round(feeSol * LAMPORTS_PER_SOL));
 
@@ -224,7 +224,7 @@ export async function executeRealSplTokenCreation(
   // Instruction 2: Initialize Mint
   const initMintIx = createInitializeMint2Instruction(
     mintPublicKey,
-    formData.decimals,
+    formData.decimals === '' ? 9 : formData.decimals,
     wallet.publicKey,
     freezeAuthority,
     TOKEN_PROGRAM_ID
