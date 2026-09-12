@@ -212,7 +212,7 @@ export default function WalletModal() {
           /* DISCONNECTED / CONNECT SELECTION VIEW */
           <div className="space-y-4 pt-1">
             <p className="text-xs text-elegant-text-secondary leading-relaxed">
-              Select your Solana wallet below. On desktop, this connects to your browser extension. On mobile devices, this launches your official wallet application to approve.
+              Select your preferred Solana wallet to authenticate and sign the SPL token creation transaction.
             </p>
 
             {/* Error / Cancellation Message Box */}
