@@ -590,9 +590,8 @@ export default function App() {
                 </div>
 
                 {/* Drawer Subtle Footer */}
-                <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex items-center justify-between text-[11px] text-elegant-text-secondary shrink-0 font-mono">
-                  <span>SURCHI AI</span>
-                  <span>v2.4</span>
+                <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex items-center justify-center text-[11px] text-elegant-text-secondary shrink-0 font-mono">
+                  <span>powered by SURCHI PROTOCOL</span>
                 </div>
               </motion.div>
             </div>
