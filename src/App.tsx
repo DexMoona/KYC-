@@ -40,6 +40,7 @@ import SurchiLogo from './components/SurchiLogo';
 import AuditorView from './components/AuditorView';
 import AppFooter from './components/AppFooter';
 import TokenCreatorView from './components/TokenCreatorView';
+import WalletModal from './components/WalletModal';
 import { Token } from './types';
 
 type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' | 'news' | 'admin' | 'auditor' | 'token-creator';
@@ -677,6 +678,9 @@ export default function App() {
           )}
         </button>
       </div>
+
+      {/* Global Solana Wallet Modal */}
+      <WalletModal />
     </div>
   );
 }

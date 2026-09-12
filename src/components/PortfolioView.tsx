@@ -10,6 +10,7 @@ import TokenIcon from './TokenIcon';
 import ChainIcon from './ChainIcon';
 import DataLoader from './DataLoader';
 import { useLivePrice } from './LivePriceContext';
+import { useSolanaWallet } from '../context/SolanaWalletContext';
 
 interface PortfolioBalance {
   token: Token;
@@ -52,6 +53,7 @@ const SAMPLE_WALLETS = [
 ];
 
 export default function PortfolioView() {
+  const { connectedWallet, shortenedAddress } = useSolanaWallet();
   const [walletInput, setWalletInput] = useState('JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4'); // Helius Solana Wallet
   const [targetChain, setTargetChain] = useState('auto');
   const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
@@ -320,6 +322,22 @@ export default function PortfolioView() {
 
         {/* Quick Select Sample Wallets */}
         <div className="mt-4 pt-4 border-t border-elegant-border/40 flex flex-wrap items-center gap-2 text-xs">
+          {connectedWallet && (
+            <button
+              type="button"
+              id="btn-scan-connected-wallet"
+              onClick={() => {
+                setWalletInput(connectedWallet.address);
+                setTargetChain('Solana');
+                fetchPortfolio(connectedWallet.address, 'Solana');
+              }}
+              className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 rounded text-[11px] font-mono text-emerald-300 font-bold transition-colors flex items-center space-x-1.5 cursor-pointer shadow-xs"
+              title={`Scan connected ${connectedWallet.name} wallet`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Scan Connected {connectedWallet.name} ({shortenedAddress})</span>
+            </button>
+          )}
           <span className="text-gray-400 text-[11px] font-mono">Sample Live Wallets:</span>
           {SAMPLE_WALLETS.map((sample) => (
             <button

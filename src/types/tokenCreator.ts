@@ -63,4 +63,6 @@ export interface WalletAdapterInfo {
   icon: string;
   installed: boolean;
   walletUrl: string;
+  mobileAppUrl?: string;
+  deepLinkBrowseUrl?: string;
 }

@@ -33,6 +33,7 @@ import {
   SolanaNetwork,
   WalletAdapterInfo
 } from '../types/tokenCreator';
+import { useSolanaWallet } from '../context/SolanaWalletContext';
 import {
   getAvailableWallets,
   connectWalletProvider,
@@ -65,13 +66,16 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
   const [activeNetwork, setActiveNetwork] = useState<SolanaNetwork>('mainnet-beta');
   const [isConfigLoading, setIsConfigLoading] = useState(true);
 
-  // Wallet State
-  const [availableWallets, setAvailableWallets] = useState<WalletAdapterInfo[]>([]);
-  const [connectedWallet, setConnectedWallet] = useState<ConnectedSolanaWallet | null>(null);
-  const [solBalance, setSolBalance] = useState<number | null>(null);
-  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
-  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false);
-  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  // Global Wallet State
+  const {
+    connectedWallet,
+    solBalance,
+    isConnecting: isConnectingWallet,
+    isRefreshingBalance,
+    setWalletModalOpen,
+    disconnectWallet: handleDisconnectWallet,
+    refreshBalance,
+  } = useSolanaWallet();
 
   // Form State
   const [formData, setFormData] = useState<TokenCreationFormData>({
@@ -133,11 +137,6 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     loadConfig();
   }, []);
 
-  // Detect Wallets
-  useEffect(() => {
-    setAvailableWallets(getAvailableWallets());
-  }, [walletModalOpen]);
-
   // Establish RPC Connection
   const getRpcConnection = () => {
     const rpcUrl = activeNetwork === 'devnet'
@@ -145,31 +144,6 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
       : (config.rpcEndpoint === '/api/solana-rpc' ? `${window.location.origin}/api/solana-rpc` : 'https://api.mainnet-beta.solana.com');
     return new Connection(rpcUrl, 'confirmed');
   };
-
-  // Refresh SOL Balance
-  const refreshBalance = async (wallet?: ConnectedSolanaWallet | null) => {
-    const targetWallet = wallet || connectedWallet;
-    if (!targetWallet) return;
-
-    setIsRefreshingBalance(true);
-    try {
-      const conn = getRpcConnection();
-      const balance = await fetchWalletSolBalance(conn, targetWallet.publicKey);
-      setSolBalance(balance);
-    } catch (err) {
-      console.warn('Failed to refresh balance:', err);
-    } finally {
-      setIsRefreshingBalance(false);
-    }
-  };
-
-  useEffect(() => {
-    if (connectedWallet) {
-      refreshBalance(connectedWallet);
-    } else {
-      setSolBalance(null);
-    }
-  }, [connectedWallet, activeNetwork]);
 
   // Load Created Tokens History
   const loadHistory = async () => {
@@ -191,35 +165,6 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
   useEffect(() => {
     loadHistory();
   }, [connectedWallet]);
-
-  // Connect Wallet Handler
-  const handleConnectWallet = async (walletName: 'Phantom' | 'Solflare') => {
-    setIsConnectingWallet(true);
-    setErrorMessage(null);
-    try {
-      const wallet = await connectWalletProvider(walletName);
-      setConnectedWallet(wallet);
-      setWalletModalOpen(false);
-      await refreshBalance(wallet);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to connect wallet.');
-    } finally {
-      setIsConnectingWallet(false);
-    }
-  };
-
-  // Disconnect Wallet Handler
-  const handleDisconnectWallet = async () => {
-    if (connectedWallet) {
-      try {
-        await connectedWallet.disconnect();
-      } catch (err) {
-        // Suppress
-      }
-      setConnectedWallet(null);
-      setSolBalance(null);
-    }
-  };
 
   // File Upload Handlers
   const handleFileSelect = (file: File) => {
@@ -437,7 +382,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
       // 8. Success Confirmation
       setCreationStep('success');
       setSuccessRecord(verifyData.record);
-      await refreshBalance(connectedWallet);
+      await refreshBalance();
       await loadHistory();
     } catch (err: any) {
       console.error('[Token Creation Error]', err);
@@ -1378,68 +1323,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
         )}
       </div>
 
-      {/* Wallet Connection Modal */}
-      {walletModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-elegant-surface border border-elegant-border rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => setWalletModalOpen(false)}
-              className="absolute top-4 right-4 text-elegant-text-secondary hover:text-white cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold font-mono text-white flex items-center space-x-2">
-                <Wallet className="w-5 h-5 text-elegant-gold" />
-                <span>Connect Solana Wallet</span>
-              </h3>
-              <p className="text-xs font-mono text-elegant-text-secondary">
-                Select your preferred Solana wallet to authenticate and sign the SPL token creation transaction.
-              </p>
-            </div>
-
-            <div className="space-y-3 pt-2 font-mono">
-              {availableWallets.map((wallet) => (
-                <button
-                  key={wallet.name}
-                  type="button"
-                  onClick={() => handleConnectWallet(wallet.name)}
-                  disabled={isConnectingWallet}
-                  className="w-full flex items-center justify-between p-3.5 rounded-xl bg-elegant-bg hover:bg-elegant-surface-hover border border-elegant-border hover:border-elegant-gold transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex items-center space-x-3">
-                    <img src={wallet.icon} alt={wallet.name} className="w-8 h-8 rounded-lg" />
-                    <div>
-                      <div className="font-bold text-white text-sm group-hover:text-elegant-gold transition-colors">
-                        {wallet.name}
-                      </div>
-                      <div className="text-[11px] text-elegant-text-secondary">
-                        {wallet.installed ? 'Detected in browser' : 'Not detected — click to install'}
-                      </div>
-                    </div>
-                  </div>
-                  {wallet.installed ? (
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold uppercase">
-                      Installed
-                    </span>
-                  ) : (
-                    <ExternalLink className="w-4 h-4 text-elegant-text-secondary group-hover:text-white" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-elegant-bg p-3 rounded-xl border border-elegant-border text-[11px] font-mono text-elegant-text-secondary flex items-start space-x-2">
-              <Shield className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>
-                <strong>Security Guarantee:</strong> SURCHI never requests, touches, or stores your private keys or seed phrase. All transactions are signed safely in your browser wallet extension.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Creation Flow ends here */}
     </div>
   );
 }
