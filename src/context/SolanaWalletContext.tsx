@@ -131,8 +131,12 @@ export const SolanaWalletProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setWalletModalOpen(false);
       return wallet;
     } catch (err: any) {
-      const msg = err?.message || `Failed to connect to ${walletName}.`;
+      const isCancellation = err?.isCancellation || err?.message === 'Connection cancelled';
+      const msg = isCancellation ? 'Connection cancelled' : (err?.message || `Failed to connect to ${walletName}.`);
       setError(msg);
+      if (isCancellation) {
+        setWalletModalOpen(true);
+      }
       throw err;
     } finally {
       setIsConnecting(false);
@@ -153,8 +157,15 @@ export const SolanaWalletProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setError(null);
     localStorage.removeItem(STORAGE_KEY_WALLET_NAME);
     localStorage.removeItem(STORAGE_KEY_WALLET_ADDR);
+    localStorage.removeItem('surchi_wallet_session');
+    localStorage.removeItem('surchi_wallet_dapp_secret');
+    localStorage.removeItem('surchi_wallet_dapp_public');
+    localStorage.removeItem('surchi_pending_wallet');
+    localStorage.removeItem('surchi_wallet_encryption_pub');
+
     sessionStorage.removeItem('surchi_wallet_session');
     sessionStorage.removeItem('surchi_wallet_dapp_secret');
+    sessionStorage.removeItem('surchi_wallet_dapp_public');
     sessionStorage.removeItem('surchi_pending_wallet');
   }, [connectedWallet]);
 
@@ -195,7 +206,10 @@ export const SolanaWalletProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
     } catch (err: any) {
-      setError(err?.message || 'Mobile wallet connection was cancelled or rejected.');
+      const isCancellation = err?.isCancellation || err?.message === 'Connection cancelled';
+      setError(isCancellation ? 'Connection cancelled' : (err?.message || 'Mobile wallet connection was cancelled or rejected.'));
+      // Requirement 11: If the user rejects the request, show "Connection cancelled" and return to the wallet selection screen
+      setWalletModalOpen(true);
     }
 
     // Attempt eager silent reconnect on desktop / in-app
