@@ -260,7 +260,6 @@ export default function App() {
                   <BookOpen className="w-4 h-4 shrink-0 text-elegant-gold" />
                   <span>White Docs</span>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
               <a
                 href="https://explorer.surchi.xyz/"
@@ -272,7 +271,6 @@ export default function App() {
                   <Terminal className="w-4 h-4 shrink-0 text-elegant-gold" />
                   <span>Surchi Terminal</span>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
               <a
                 href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
@@ -284,7 +282,6 @@ export default function App() {
                   <Compass className="w-4 h-4 shrink-0 text-elegant-gold" />
                   <span>Explorer</span>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
               <a
                 href="https://academy.binance.com/en/"
@@ -296,7 +293,6 @@ export default function App() {
                   <GraduationCap className="w-4 h-4 shrink-0 text-elegant-gold" />
                   <span>Academy</span>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </a>
 
 
@@ -487,7 +483,6 @@ export default function App() {
                         <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
                         <span>White Docs</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
                     </a>
 
                     <a
@@ -501,7 +496,6 @@ export default function App() {
                         <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
                         <span>Surchi Terminal</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
                     </a>
 
                     <a
@@ -515,7 +509,6 @@ export default function App() {
                         <Compass className="w-4 h-4 text-slate-500 shrink-0" />
                         <span>Explorer</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
                     </a>
 
                     <a
@@ -529,7 +522,6 @@ export default function App() {
                         <GraduationCap className="w-4 h-4 text-slate-500 shrink-0" />
                         <span>Academy</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
                     </a>
                   </div>
 
@@ -555,7 +547,6 @@ export default function App() {
                         <Github className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>GitHub</span>
                       </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
                     </a>
 
                     <a
@@ -569,7 +560,6 @@ export default function App() {
                         <Twitter className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Twitter</span>
                       </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
                     </a>
 
                     <a
@@ -583,7 +573,6 @@ export default function App() {
                         <Send className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Telegram</span>
                       </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
                     </a>
 
                     <a
@@ -597,7 +586,6 @@ export default function App() {
                         <BookOpenText className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Medium</span>
                       </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
                     </a>
 
                     <a
@@ -611,7 +599,6 @@ export default function App() {
                         <MessageSquare className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Discord</span>
                       </div>
-                      <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 shrink-0" />
                     </a>
                   </div>
                 </div>
