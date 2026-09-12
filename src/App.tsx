@@ -347,16 +347,16 @@ export default function App() {
                 aria-label="Close backdrop"
               />
 
-              {/* Large White Drawer */}
+              {/* Dark Theme Drawer */}
               <motion.div
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                className="relative z-10 w-[84vw] max-w-[340px] bg-white text-slate-900 h-full shadow-2xl flex flex-col justify-between overflow-hidden"
+                className="relative z-10 w-[84vw] max-w-[340px] bg-elegant-surface border-r border-elegant-border text-elegant-text h-full shadow-2xl flex flex-col justify-between overflow-hidden"
               >
                 {/* Drawer Header */}
-                <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div className="px-4 py-3.5 border-b border-elegant-border flex items-center justify-between shrink-0">
                   <button
                     type="button"
                     onClick={handleGoHome}
@@ -365,11 +365,11 @@ export default function App() {
                     aria-label="SURCHI Home"
                   >
                     <SurchiLogo size={28} className="group-hover:scale-105 transition-transform duration-200" />
-                    <span className="text-slate-950 font-bold text-base tracking-tight font-sans group-hover:text-amber-700 transition-colors">SURCHI</span>
+                    <span className="text-white font-bold text-base tracking-tight font-sans group-hover:text-elegant-gold transition-colors">SURCHI</span>
                   </button>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg text-elegant-text-secondary hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                     aria-label="Close navigation"
                   >
                     <X className="w-5 h-5" />
@@ -384,11 +384,11 @@ export default function App() {
                       onClick={() => { setActiveView('dashboard'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'dashboard'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <Zap className={`w-4 h-4 shrink-0 ${activeView === 'dashboard' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <Zap className={`w-4 h-4 shrink-0 ${activeView === 'dashboard' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Home Dashboard</span>
                     </button>
 
@@ -396,11 +396,11 @@ export default function App() {
                       onClick={() => { setActiveView('screener'); setSearchQuery(''); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'screener'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <BarChart3 className={`w-4 h-4 shrink-0 ${activeView === 'screener' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <BarChart3 className={`w-4 h-4 shrink-0 ${activeView === 'screener' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Screener</span>
                     </button>
 
@@ -408,11 +408,11 @@ export default function App() {
                       onClick={() => { setActiveView('auditor'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'auditor'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <ShieldCheck className={`w-4 h-4 shrink-0 ${activeView === 'auditor' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <ShieldCheck className={`w-4 h-4 shrink-0 ${activeView === 'auditor' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Contract Auditor</span>
                     </button>
 
@@ -420,11 +420,11 @@ export default function App() {
                       onClick={() => { setActiveView('whales'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'whales'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <Users className={`w-4 h-4 shrink-0 ${activeView === 'whales' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <Users className={`w-4 h-4 shrink-0 ${activeView === 'whales' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Whales</span>
                     </button>
 
@@ -432,11 +432,11 @@ export default function App() {
                       onClick={() => { setActiveView('portfolio'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'portfolio'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <Wallet className={`w-4 h-4 shrink-0 ${activeView === 'portfolio' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <Wallet className={`w-4 h-4 shrink-0 ${activeView === 'portfolio' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Portfolio</span>
                     </button>
 
@@ -444,11 +444,11 @@ export default function App() {
                       onClick={() => { setActiveView('news'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'news'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
-                      <Newspaper className={`w-4 h-4 shrink-0 ${activeView === 'news' ? 'text-slate-950' : 'text-slate-500'}`} />
+                      <Newspaper className={`w-4 h-4 shrink-0 ${activeView === 'news' ? 'text-elegant-gold' : 'text-elegant-text-secondary'}`} />
                       <span>Sentiment News</span>
                     </button>
 
@@ -456,8 +456,8 @@ export default function App() {
                       onClick={() => { setActiveView('token-creator'); setMobileMenuOpen(false); }}
                       className={`w-full flex items-center space-x-3.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors text-left cursor-pointer ${
                         activeView === 'token-creator'
-                          ? 'bg-slate-100 text-slate-950 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
+                          ? 'bg-elegant-surface-hover text-white font-semibold shadow-sm'
+                          : 'text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white'
                       }`}
                     >
                       <span className="text-base shrink-0">🪙</span>
@@ -467,7 +467,7 @@ export default function App() {
 
                   {/* Divider */}
                   <div className="py-2">
-                    <hr className="border-slate-100" />
+                    <hr className="border-elegant-border" />
                   </div>
 
                   {/* Secondary Navigation Section */}
@@ -477,10 +477,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3.5">
-                        <BookOpen className="w-4 h-4 text-slate-500 shrink-0" />
+                        <BookOpen className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>White Docs</span>
                       </div>
                     </a>
@@ -490,10 +490,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3.5">
-                        <Terminal className="w-4 h-4 text-slate-500 shrink-0" />
+                        <Terminal className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>Surchi Terminal</span>
                       </div>
                     </a>
@@ -503,10 +503,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3.5">
-                        <Compass className="w-4 h-4 text-slate-500 shrink-0" />
+                        <Compass className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>Explorer</span>
                       </div>
                     </a>
@@ -516,10 +516,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3.5">
-                        <GraduationCap className="w-4 h-4 text-slate-500 shrink-0" />
+                        <GraduationCap className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>Academy</span>
                       </div>
                     </a>
@@ -527,12 +527,12 @@ export default function App() {
 
                   {/* Divider */}
                   <div className="py-2">
-                    <hr className="border-slate-100" />
+                    <hr className="border-elegant-border" />
                   </div>
 
                   {/* Bottom Resources & Community Section (Reference layout) */}
                   <div className="space-y-1">
-                    <div className="px-3 pt-1 pb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <div className="px-3 pt-1 pb-1.5 text-[11px] font-semibold text-elegant-text-secondary uppercase tracking-wider">
                       Resources & Community
                     </div>
                     
@@ -541,10 +541,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <Github className="w-4 h-4 text-slate-600 shrink-0" />
+                        <Github className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>GitHub</span>
                       </div>
                     </a>
@@ -554,10 +554,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <Twitter className="w-4 h-4 text-slate-600 shrink-0" />
+                        <Twitter className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>Twitter</span>
                       </div>
                     </a>
@@ -567,10 +567,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <Send className="w-4 h-4 text-slate-600 shrink-0" />
+                        <Send className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>Telegram</span>
                       </div>
                     </a>
@@ -580,10 +580,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <BookOpenText className="w-4 h-4 text-slate-600 shrink-0" />
+                        <BookOpenText className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>Medium</span>
                       </div>
                     </a>
@@ -593,10 +593,10 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-950 transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <MessageSquare className="w-4 h-4 text-slate-600 shrink-0" />
+                        <MessageSquare className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>Discord</span>
                       </div>
                     </a>
@@ -604,7 +604,7 @@ export default function App() {
                 </div>
 
                 {/* Drawer Subtle Footer */}
-                <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 shrink-0 font-mono">
+                <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex items-center justify-between text-[11px] text-elegant-text-secondary shrink-0 font-mono">
                   <span>SURCHI AI</span>
                   <span>v2.4</span>
                 </div>
