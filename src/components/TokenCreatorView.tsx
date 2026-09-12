@@ -23,7 +23,8 @@ import {
   AlertTriangle,
   X,
   Layers,
-  Terminal
+  Terminal,
+  FileText
 } from 'lucide-react';
 import {
   TokenCreationConfig,
@@ -49,7 +50,7 @@ import {
 } from '../utils/tokenCreation';
 
 const DEFAULT_FEE_WALLET = '7KiihM84H4T9gCLD61HpcRGtSapk9N2H3QAsn9A5y9Ng';
-const DEFAULT_FEE_SOL = 0.1;
+const DEFAULT_FEE_SOL = 0.2;
 
 interface TokenCreatorViewProps {
   onClose?: () => void;
@@ -86,8 +87,8 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
         return {
           name: parsed.name || '',
           symbol: parsed.symbol || '',
-          decimals: typeof parsed.decimals === 'number' ? parsed.decimals : 9,
-          supply: parsed.supply || '1000000',
+          decimals: typeof parsed.decimals === 'number' || parsed.decimals === '' ? parsed.decimals : '',
+          supply: parsed.supply || '',
           description: parsed.description || '',
           logoFile: null,
           logoPreview: parsed.logoPreview || null,
@@ -95,8 +96,9 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
           website: parsed.website || '',
           twitter: parsed.twitter || '',
           telegram: parsed.telegram || '',
-          mintAuthorityOption: parsed.mintAuthorityOption || null,
-          freezeAuthorityOption: parsed.freezeAuthorityOption || null,
+          revokeMintAuthority: Boolean(parsed.revokeMintAuthority ?? (parsed.mintAuthorityOption === 'revoke')),
+          revokeFreezeAuthority: Boolean(parsed.revokeFreezeAuthority ?? (parsed.freezeAuthorityOption === 'disable')),
+          revokeUpdateAuthority: Boolean(parsed.revokeUpdateAuthority),
         };
       }
     } catch {
@@ -105,8 +107,8 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     return {
       name: '',
       symbol: '',
-      decimals: 9,
-      supply: '1000000',
+      decimals: '',
+      supply: '',
       description: '',
       logoFile: null,
       logoPreview: null,
@@ -114,8 +116,9 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
       website: '',
       twitter: '',
       telegram: '',
-      mintAuthorityOption: null,
-      freezeAuthorityOption: null,
+      revokeMintAuthority: false,
+      revokeFreezeAuthority: false,
+      revokeUpdateAuthority: false,
     };
   });
 
@@ -132,8 +135,9 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
         website: formData.website,
         twitter: formData.twitter,
         telegram: formData.telegram,
-        mintAuthorityOption: formData.mintAuthorityOption,
-        freezeAuthorityOption: formData.freezeAuthorityOption,
+        revokeMintAuthority: formData.revokeMintAuthority,
+        revokeFreezeAuthority: formData.revokeFreezeAuthority,
+        revokeUpdateAuthority: formData.revokeUpdateAuthority,
       }));
     } catch {
       // ignore
@@ -479,6 +483,9 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
           decimals: formData.decimals,
           supply: formData.supply,
           network: activeNetwork,
+          revokeMintAuthority: formData.revokeMintAuthority,
+          revokeFreezeAuthority: formData.revokeFreezeAuthority,
+          revokeUpdateAuthority: formData.revokeUpdateAuthority,
         }),
       });
 
@@ -568,8 +575,9 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
       website: '',
       twitter: '',
       telegram: '',
-      mintAuthorityOption: null,
-      freezeAuthorityOption: null,
+      revokeMintAuthority: false,
+      revokeFreezeAuthority: false,
+      revokeUpdateAuthority: false,
     });
   };
 
@@ -589,114 +597,116 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
 
   return (
     <div className="space-y-8 animate-fade-in pb-16" id="surchi-token-creator-page">
-      {/* Top Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-elegant-border pb-6">
-        <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-          <span className="text-xl sm:text-2xl shrink-0">🪙</span>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono tracking-tight text-white truncate">
-            Create Solana Token
-          </h1>
-        </div>
-
-        {/* Right Corner: Network Badge & Close Button */}
-        <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
-          <div className="hidden sm:flex items-center space-x-2 bg-elegant-surface border border-emerald-500/30 rounded-xl px-3 py-1.5 shrink-0 text-xs font-mono text-emerald-300 font-semibold shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Solana Mainnet</span>
-          </div>
-          <div className="sm:hidden flex items-center space-x-1.5 bg-elegant-surface border border-emerald-500/30 rounded-lg px-2 py-1 shrink-0 text-[10px] font-mono text-emerald-300 font-semibold shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Mainnet</span>
+      <div className="space-y-4">
+        {/* Top Header */}
+        <div className="flex items-center justify-between gap-4 border-b border-elegant-border pb-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <span className="text-xl sm:text-2xl shrink-0">🪙</span>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-mono tracking-tight text-white truncate">
+              Create Token
+            </h1>
           </div>
 
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 rounded-xl bg-elegant-surface hover:bg-elegant-surface-hover border border-elegant-border hover:border-elegant-gold/60 text-white/70 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm group"
-              title="Close"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
-            </button>
-          )}
-        </div>
-      </div>
+          {/* Right Corner: Network Badge & Close Button */}
+          <div className="flex items-center space-x-2 sm:space-x-2.5 shrink-0">
+            <div className="hidden sm:flex items-center space-x-2 bg-elegant-surface border border-emerald-500/30 rounded-xl px-3 py-1.5 shrink-0 text-xs font-mono text-emerald-300 font-semibold shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span>Solana Mainnet</span>
+            </div>
+            <div className="sm:hidden flex items-center space-x-1.5 bg-elegant-surface border border-emerald-500/30 rounded-lg px-2 py-1 shrink-0 text-[10px] font-mono text-emerald-300 font-semibold shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Mainnet</span>
+            </div>
 
-      {/* Wallet Connection */}
-      {connectedWallet ? (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div>
-              <div className="text-xs text-elegant-text-secondary font-mono uppercase tracking-wider">
-                Connected Solana Wallet
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 rounded-xl bg-elegant-surface hover:bg-elegant-surface-hover border border-elegant-border hover:border-elegant-gold/60 text-white/70 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-sm group"
+                title="Close"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Wallet Connection */}
+        {connectedWallet ? (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div>
+                <div className="text-xs text-elegant-text-secondary font-mono uppercase tracking-wider">
+                  Connected Solana Wallet
+                </div>
+                <div className="flex items-center space-x-2 mt-0.5">
+                  <span className="font-mono text-sm font-bold text-white">
+                    {connectedWallet.address.slice(0, 4)}...{connectedWallet.address.slice(-4)}
+                  </span>
+                  <span className="text-[10px] bg-elegant-surface border border-elegant-border text-white/70 px-2 py-0.5 rounded font-mono">
+                    {connectedWallet.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(connectedWallet.address, 'wallet')}
+                    className="text-elegant-text-secondary hover:text-white transition-colors cursor-pointer"
+                    title="Copy wallet address"
+                  >
+                    {copiedWallet ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                  <a
+                    href={getSolscanAddressUrl(connectedWallet.address, activeNetwork)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-elegant-text-secondary hover:text-elegant-gold transition-colors"
+                    title="View on Solscan"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center space-x-2 mt-0.5">
-                <span className="font-mono text-sm font-bold text-white">
-                  {connectedWallet.address.slice(0, 4)}...{connectedWallet.address.slice(-4)}
-                </span>
-                <span className="text-[10px] bg-elegant-surface border border-elegant-border text-white/70 px-2 py-0.5 rounded font-mono">
-                  {connectedWallet.name}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex items-center space-x-2 bg-elegant-surface border border-elegant-border px-3 py-1.5 rounded-lg text-xs font-mono">
+                <span className="text-elegant-text-secondary">Balance:</span>
+                <span className="font-bold text-white">
+                  {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : 'Loading...'}
                 </span>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(connectedWallet.address, 'wallet')}
+                  onClick={() => refreshBalance()}
+                  disabled={isRefreshingBalance}
                   className="text-elegant-text-secondary hover:text-white transition-colors cursor-pointer"
-                  title="Copy wallet address"
+                  title="Refresh Balance"
                 >
-                  {copiedWallet ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingBalance ? 'animate-spin text-elegant-gold' : ''}`} />
                 </button>
-                <a
-                  href={getSolscanAddressUrl(connectedWallet.address, activeNetwork)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-elegant-text-secondary hover:text-elegant-gold transition-colors"
-                  title="View on Solscan"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex items-center space-x-2 bg-elegant-surface border border-elegant-border px-3 py-1.5 rounded-lg text-xs font-mono">
-              <span className="text-elegant-text-secondary">Balance:</span>
-              <span className="font-bold text-white">
-                {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : 'Loading...'}
-              </span>
               <button
                 type="button"
-                onClick={() => refreshBalance()}
-                disabled={isRefreshingBalance}
-                className="text-elegant-text-secondary hover:text-white transition-colors cursor-pointer"
-                title="Refresh Balance"
+                onClick={handleDisconnectWallet}
+                className="px-3 py-1.5 rounded-lg bg-elegant-surface hover:bg-red-500/20 text-elegant-text-secondary hover:text-red-300 border border-elegant-border hover:border-red-500/30 text-xs font-mono transition-colors cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingBalance ? 'animate-spin text-elegant-gold' : ''}`} />
+                Disconnect
               </button>
             </div>
-
+          </div>
+        ) : (
+          <div className="flex justify-start">
             <button
               type="button"
-              onClick={handleDisconnectWallet}
-              className="px-3 py-1.5 rounded-lg bg-elegant-surface hover:bg-red-500/20 text-elegant-text-secondary hover:text-red-300 border border-elegant-border hover:border-red-500/30 text-xs font-mono transition-colors cursor-pointer"
+              onClick={() => setWalletModalOpen(true)}
+              className="px-4 py-2 rounded-lg bg-elegant-gold hover:bg-elegant-gold-hover text-elegant-bg font-bold font-mono text-xs uppercase tracking-wider transition-all shadow-md shadow-elegant-gold/10 cursor-pointer flex items-center space-x-2"
             >
-              Disconnect
+              <Wallet className="w-4 h-4" />
+              <span>Connect Wallet</span>
             </button>
           </div>
-        </div>
-      ) : (
-        <div className="flex justify-start">
-          <button
-            type="button"
-            onClick={() => setWalletModalOpen(true)}
-            className="px-4 py-2 rounded-lg bg-elegant-gold hover:bg-elegant-gold-hover text-elegant-bg font-bold font-mono text-xs uppercase tracking-wider transition-all shadow-md shadow-elegant-gold/10 cursor-pointer flex items-center space-x-2"
-          >
-            <Wallet className="w-4 h-4" />
-            <span>Connect Wallet</span>
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Creation Flow & Form */}
       {creationStep === 'success' && successRecord ? (
@@ -1234,188 +1244,167 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
                 </div>
               </div>
 
-              {/* Authority Settings (Mint & Freeze Controls) - Permanently Visible with Checkmark Option Selections */}
+              {/* Authority Settings (Mint, Freeze & Metadata Controls) */}
               <div className="border-t border-elegant-border pt-5 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center space-x-2">
                     <Shield className="w-4 h-4 text-elegant-gold" />
                     <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-                      Authority Settings (Mint & Freeze Controls)
+                      Authority Settings
                     </span>
                   </div>
+                  <span className="text-[11px] font-mono text-elegant-text-secondary">
+                    Checked = Revoked &bull; Unchecked = Keep Authority
+                  </span>
                 </div>
 
-                <div className="space-y-4 bg-elegant-bg p-4 rounded-xl border border-elegant-border text-xs font-mono">
-                  {/* Mint Authority */}
-                  <div>
-                    <div className="font-bold text-white mb-2 flex items-center space-x-1.5">
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Mint Authority</span>
+                <div className="space-y-3 bg-elegant-bg p-4 rounded-xl border border-elegant-border text-xs font-mono">
+                  {/* Option 1: Revoke Mint Authority */}
+                  <div
+                    role="checkbox"
+                    id="chk-revoke-mint-authority"
+                    aria-checked={formData.revokeMintAuthority}
+                    tabIndex={0}
+                    onClick={() => setFormData(prev => ({ ...prev, revokeMintAuthority: !prev.revokeMintAuthority }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setFormData(prev => ({ ...prev, revokeMintAuthority: !prev.revokeMintAuthority }));
+                      }
+                    }}
+                    className={`group flex items-start space-x-3.5 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
+                      formData.revokeMintAuthority
+                        ? 'border-amber-500/70 bg-amber-500/10 shadow-sm'
+                        : 'border-elegant-border bg-elegant-surface/70 hover:border-white/30'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                      formData.revokeMintAuthority
+                        ? 'border-amber-500 bg-amber-500 text-black shadow-sm shadow-amber-500/20'
+                        : 'border-white/40 bg-black/40 group-hover:border-white/80'
+                    }`}>
+                      {formData.revokeMintAuthority && (
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div
-                        role="checkbox"
-                        aria-checked={formData.mintAuthorityOption === 'keep'}
-                        tabIndex={0}
-                        onClick={() => setFormData(prev => ({ ...prev, mintAuthorityOption: prev.mintAuthorityOption === 'keep' ? null : 'keep' }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setFormData(prev => ({ ...prev, mintAuthorityOption: prev.mintAuthorityOption === 'keep' ? null : 'keep' }));
-                          }
-                        }}
-                        className={`group flex items-start space-x-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
-                          formData.mintAuthorityOption === 'keep'
-                            ? 'border-elegant-gold bg-elegant-gold/10 shadow-sm'
-                            : 'border-elegant-border bg-elegant-surface hover:border-white/30'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          formData.mintAuthorityOption === 'keep'
-                            ? 'border-elegant-gold bg-elegant-gold text-black shadow-sm shadow-elegant-gold/20'
-                            : 'border-white/40 bg-black/40 group-hover:border-white/80'
-                        }`}>
-                          {formData.mintAuthorityOption === 'keep' && (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-white flex items-center space-x-2">
+                          <Lock className={`w-3.5 h-3.5 ${formData.revokeMintAuthority ? 'text-amber-400' : 'text-slate-400'}`} />
+                          <span className={formData.revokeMintAuthority ? 'text-amber-300' : 'text-white'}>
+                            Revoke Mint Authority
+                          </span>
                         </div>
-                        <div>
-                          <div className="font-bold text-white flex items-center space-x-1.5">
-                            <span>Keep Mint Authority</span>
-                            {formData.mintAuthorityOption === 'keep' && (
-                              <span className="text-[10px] text-elegant-gold bg-elegant-gold/20 px-1.5 py-0.2 rounded font-normal">Active</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-elegant-text-secondary mt-1">
-                            Allows you to mint more supply later if desired. (Default)
-                          </div>
-                        </div>
+                        {formData.revokeMintAuthority && (
+                          <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 text-amber-300 bg-amber-500/20 border border-amber-500/30">
+                            Revoked (Fixed Supply)
+                          </span>
+                        )}
                       </div>
-
-                      <div
-                        role="checkbox"
-                        aria-checked={formData.mintAuthorityOption === 'revoke'}
-                        tabIndex={0}
-                        onClick={() => setFormData(prev => ({ ...prev, mintAuthorityOption: prev.mintAuthorityOption === 'revoke' ? null : 'revoke' }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setFormData(prev => ({ ...prev, mintAuthorityOption: prev.mintAuthorityOption === 'revoke' ? null : 'revoke' }));
-                          }
-                        }}
-                        className={`group flex items-start space-x-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
-                          formData.mintAuthorityOption === 'revoke'
-                            ? 'border-amber-500 bg-amber-500/10 shadow-sm'
-                            : 'border-elegant-border bg-elegant-surface hover:border-white/30'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          formData.mintAuthorityOption === 'revoke'
-                            ? 'border-amber-500 bg-amber-500 text-black shadow-sm shadow-amber-500/20'
-                            : 'border-white/40 bg-black/40 group-hover:border-white/80'
-                        }`}>
-                          {formData.mintAuthorityOption === 'revoke' && (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-bold text-amber-300 flex items-center space-x-1.5">
-                            <span>Revoke Mint Authority</span>
-                            {formData.mintAuthorityOption === 'revoke' && (
-                              <span className="text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded font-normal">Active</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-elegant-text-secondary mt-1">
-                            Fixed supply forever. Irreversible on-chain.
-                          </div>
-                        </div>
+                      <div className="text-[11px] text-elegant-text-secondary mt-1.5 leading-relaxed">
+                        {formData.revokeMintAuthority
+                          ? 'Checked — Supply is permanently capped. No one (including creator) can ever mint additional supply.'
+                          : ''}
                       </div>
                     </div>
                   </div>
 
-                  {/* Freeze Authority */}
-                  <div className="pt-3 border-t border-elegant-border/60">
-                    <div className="font-bold text-white mb-2 flex items-center space-x-1.5">
-                      <Unlock className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Freeze Authority</span>
+                  {/* Option 2: Revoke Freeze Authority */}
+                  <div
+                    role="checkbox"
+                    id="chk-revoke-freeze-authority"
+                    aria-checked={formData.revokeFreezeAuthority}
+                    tabIndex={0}
+                    onClick={() => setFormData(prev => ({ ...prev, revokeFreezeAuthority: !prev.revokeFreezeAuthority }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setFormData(prev => ({ ...prev, revokeFreezeAuthority: !prev.revokeFreezeAuthority }));
+                      }
+                    }}
+                    className={`group flex items-start space-x-3.5 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
+                      formData.revokeFreezeAuthority
+                        ? 'border-emerald-500/70 bg-emerald-500/10 shadow-sm'
+                        : 'border-elegant-border bg-elegant-surface/70 hover:border-white/30'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                      formData.revokeFreezeAuthority
+                        ? 'border-emerald-500 bg-emerald-500 text-black shadow-sm shadow-emerald-500/20'
+                        : 'border-white/40 bg-black/40 group-hover:border-white/80'
+                    }`}>
+                      {formData.revokeFreezeAuthority && (
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div
-                        role="checkbox"
-                        aria-checked={formData.freezeAuthorityOption === 'disable'}
-                        tabIndex={0}
-                        onClick={() => setFormData(prev => ({ ...prev, freezeAuthorityOption: prev.freezeAuthorityOption === 'disable' ? null : 'disable' }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setFormData(prev => ({ ...prev, freezeAuthorityOption: prev.freezeAuthorityOption === 'disable' ? null : 'disable' }));
-                          }
-                        }}
-                        className={`group flex items-start space-x-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
-                          formData.freezeAuthorityOption === 'disable'
-                            ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
-                            : 'border-elegant-border bg-elegant-surface hover:border-white/30'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          formData.freezeAuthorityOption === 'disable'
-                            ? 'border-emerald-500 bg-emerald-500 text-black shadow-sm shadow-emerald-500/20'
-                            : 'border-white/40 bg-black/40 group-hover:border-white/80'
-                        }`}>
-                          {formData.freezeAuthorityOption === 'disable' && (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-white flex items-center space-x-2">
+                          <Unlock className={`w-3.5 h-3.5 ${formData.revokeFreezeAuthority ? 'text-emerald-400' : 'text-slate-400'}`} />
+                          <span className={formData.revokeFreezeAuthority ? 'text-emerald-300' : 'text-white'}>
+                            Revoke Freeze Authority
+                          </span>
                         </div>
-                        <div>
-                          <div className="font-bold text-emerald-300 flex items-center space-x-1.5">
-                            <span>Disable Freeze Authority</span>
-                            {formData.freezeAuthorityOption === 'disable' && (
-                              <span className="text-[10px] text-emerald-300 bg-emerald-500/20 px-1.5 py-0.2 rounded font-normal">Active</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-elegant-text-secondary mt-1">
-                            Required for trustless trading on Raydium/Meteora. (Default)
-                          </div>
-                        </div>
+                        {formData.revokeFreezeAuthority && (
+                          <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 text-emerald-300 bg-emerald-500/20 border border-emerald-500/30">
+                            Revoked (Cannot Freeze)
+                          </span>
+                        )}
                       </div>
+                      <div className="text-[11px] text-elegant-text-secondary mt-1.5 leading-relaxed">
+                        {formData.revokeFreezeAuthority
+                          ? 'Checked — Freeze authority is permanently revoked. Required for trustless trading and Raydium/Meteora DEX pools.'
+                          : ''}
+                      </div>
+                    </div>
+                  </div>
 
-                      <div
-                        role="checkbox"
-                        aria-checked={formData.freezeAuthorityOption === 'keep'}
-                        tabIndex={0}
-                        onClick={() => setFormData(prev => ({ ...prev, freezeAuthorityOption: prev.freezeAuthorityOption === 'keep' ? null : 'keep' }))}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setFormData(prev => ({ ...prev, freezeAuthorityOption: prev.freezeAuthorityOption === 'keep' ? null : 'keep' }));
-                          }
-                        }}
-                        className={`group flex items-start space-x-3 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
-                          formData.freezeAuthorityOption === 'keep'
-                            ? 'border-elegant-gold bg-elegant-gold/10 shadow-sm'
-                            : 'border-elegant-border bg-elegant-surface hover:border-white/30'
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                          formData.freezeAuthorityOption === 'keep'
-                            ? 'border-elegant-gold bg-elegant-gold text-black shadow-sm shadow-elegant-gold/20'
-                            : 'border-white/40 bg-black/40 group-hover:border-white/80'
-                        }`}>
-                          {formData.freezeAuthorityOption === 'keep' && (
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          )}
+                  {/* Option 3: Revoke Update Authority */}
+                  <div
+                    role="checkbox"
+                    id="chk-revoke-update-authority"
+                    aria-checked={formData.revokeUpdateAuthority}
+                    tabIndex={0}
+                    onClick={() => setFormData(prev => ({ ...prev, revokeUpdateAuthority: !prev.revokeUpdateAuthority }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setFormData(prev => ({ ...prev, revokeUpdateAuthority: !prev.revokeUpdateAuthority }));
+                      }
+                    }}
+                    className={`group flex items-start space-x-3.5 p-3.5 rounded-lg border cursor-pointer transition-all select-none ${
+                      formData.revokeUpdateAuthority
+                        ? 'border-sky-500/70 bg-sky-500/10 shadow-sm'
+                        : 'border-elegant-border bg-elegant-surface/70 hover:border-white/30'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                      formData.revokeUpdateAuthority
+                        ? 'border-sky-500 bg-sky-500 text-black shadow-sm shadow-sky-500/20'
+                        : 'border-white/40 bg-black/40 group-hover:border-white/80'
+                    }`}>
+                      {formData.revokeUpdateAuthority && (
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-bold text-white flex items-center space-x-2">
+                          <FileText className={`w-3.5 h-3.5 ${formData.revokeUpdateAuthority ? 'text-sky-400' : 'text-slate-400'}`} />
+                          <span className={formData.revokeUpdateAuthority ? 'text-sky-300' : 'text-white'}>
+                            Revoke Update Authority
+                          </span>
                         </div>
-                        <div>
-                          <div className="font-bold text-white flex items-center space-x-1.5">
-                            <span>Keep Freeze Authority</span>
-                            {formData.freezeAuthorityOption === 'keep' && (
-                              <span className="text-[10px] text-elegant-gold bg-elegant-gold/20 px-1.5 py-0.2 rounded font-normal">Active</span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-elegant-text-secondary mt-1">
-                            Allows freezing token accounts in user wallets.
-                          </div>
-                        </div>
+                        {formData.revokeUpdateAuthority && (
+                          <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 text-sky-300 bg-sky-500/20 border border-sky-500/30">
+                            Revoked (Immutable)
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-elegant-text-secondary mt-1.5 leading-relaxed">
+                        {formData.revokeUpdateAuthority
+                          ? 'Checked — Token metadata (name, symbol, logo, description) becomes completely immutable and fixed forever.'
+                          : ''}
                       </div>
                     </div>
                   </div>

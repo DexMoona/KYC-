@@ -88,9 +88,10 @@ export function buildMetaplexMetadataInstruction(
   updateAuthority: PublicKey,
   name: string,
   symbol: string,
-  uri: string
+  uri: string,
+  isMutable = true
 ): TransactionInstruction {
-  const data = createMetadataAccountV3Data(name, symbol, uri, true);
+  const data = createMetadataAccountV3Data(name, symbol, uri, isMutable);
 
   return new TransactionInstruction({
     programId: METAPLEX_TOKEN_METADATA_PROGRAM_ID,
@@ -196,8 +197,20 @@ export async function executeRealSplTokenCreation(
   const mintKeypair = Keypair.generate();
   const mintPublicKey = mintKeypair.publicKey;
 
-  // Freeze authority: only if user explicitly selected 'keep', otherwise null
-  const freezeAuthority = formData.freezeAuthorityOption === 'keep' ? wallet.publicKey : null;
+  // Authority Settings evaluation:
+  // Checked = Revoke authority
+  // Unchecked = Keep authority
+  const isFreezeRevoked = Boolean(
+    formData.revokeFreezeAuthority || formData.freezeAuthorityOption === 'disable'
+  );
+  // Freeze authority: only if kept (unchecked); if revoked (checked) -> null
+  const freezeAuthority = isFreezeRevoked ? null : wallet.publicKey;
+
+  const isMintRevoked = Boolean(
+    formData.revokeMintAuthority || formData.mintAuthorityOption === 'revoke'
+  );
+
+  const isUpdateRevoked = Boolean(formData.revokeUpdateAuthority);
 
   // Instruction 1: Create Account for Mint
   const createMintAccountIx = SystemProgram.createAccount({
@@ -278,13 +291,14 @@ export async function executeRealSplTokenCreation(
       wallet.publicKey,
       formData.name.trim(),
       formData.symbol.trim(),
-      metadataUri.trim()
+      metadataUri.trim(),
+      !isUpdateRevoked // isMutable: false if update authority is revoked, true if kept
     );
     transaction.add(metadataIx);
   }
 
-  // Instruction (Optional): Revoke Mint Authority if user selected 'revoke'
-  if (formData.mintAuthorityOption === 'revoke') {
+  // Instruction (Optional): Revoke Mint Authority if user checked 'Revoke Mint Authority'
+  if (isMintRevoked) {
     const revokeMintIx = createSetAuthorityInstruction(
       mintPublicKey,
       wallet.publicKey,

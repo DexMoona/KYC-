@@ -26,9 +26,9 @@ if (!fs.existsSync(HISTORY_FILE)) {
 
 /**
  * Authoritative SURCHI fee configuration
- * Defaults to 0.1 SOL and official SURCHI fee wallet
+ * Defaults to 0.2 SOL and official SURCHI fee wallet
  */
-const SURCHI_DEFAULT_FEE_SOL = 0.1;
+const SURCHI_DEFAULT_FEE_SOL = 0.2;
 const SURCHI_DEFAULT_FEE_WALLET = '7KiihM84H4T9gCLD61HpcRGtSapk9N2H3QAsn9A5y9Ng';
 
 export function getFeeConfig() {
@@ -241,6 +241,9 @@ router.post('/api/token-creator/metadata', (req: Request, res: Response) => {
         { trait_type: 'Decimals', value: req.body.decimals ?? 9 },
         { trait_type: 'Initial Supply', value: req.body.supply ?? '1000000' },
         { trait_type: 'Creation Network', value: req.body.network || 'Solana' },
+        { trait_type: 'Mint Authority', value: req.body.revokeMintAuthority ? 'Revoked' : 'Retained' },
+        { trait_type: 'Freeze Authority', value: req.body.revokeFreezeAuthority ? 'Revoked' : 'Retained' },
+        { trait_type: 'Update Authority', value: req.body.revokeUpdateAuthority ? 'Revoked' : 'Retained' },
       ],
       properties: {
         files: fullLogoUrl ? [{ uri: fullLogoUrl, type: 'image/png' }] : [],
@@ -295,7 +298,7 @@ router.get('/api/token-creator/metadata/:id', (req: Request, res: Response) => {
 
 // ==========================================
 // 5. ON-CHAIN TRANSACTION & FEE VERIFICATION
-// Verifies transaction, 0.1 SOL fee transfer, mint existence, and supply
+// Verifies transaction, 0.2 SOL fee transfer, mint existence, and supply
 // ==========================================
 router.post('/api/token-creator/verify', async (req: Request, res: Response) => {
   try {
@@ -357,7 +360,7 @@ router.post('/api/token-creator/verify', async (req: Request, res: Response) => 
       });
     }
 
-    // 2. Verify that 0.1 SOL reached the SURCHI fee wallet
+    // 2. Verify that 0.2 SOL reached the SURCHI fee wallet
     let feeTransferred = false;
     let feeReceivedLamports = 0;
 
@@ -395,7 +398,7 @@ router.post('/api/token-creator/verify', async (req: Request, res: Response) => 
       console.warn(`[On-Chain Verification] Fee verification warning: received ${feeReceivedLamports} lamports (expected ${expectedLamports}).`);
       return res.status(400).json({
         verified: false,
-        error: `Verification failed: 0.1 SOL creation fee transfer to ${verifiedFeeWallet} was not detected on-chain.`,
+        error: `Verification failed: 0.2 SOL creation fee transfer to ${verifiedFeeWallet} was not detected on-chain.`,
       });
     }
 

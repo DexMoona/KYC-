@@ -10,7 +10,7 @@ export interface TokenCreationConfig {
 export interface TokenCreationFormData {
   name: string;
   symbol: string;
-  decimals: number;
+  decimals: number | '';
   supply: string;
   description: string;
   logoFile: File | null;
@@ -19,8 +19,11 @@ export interface TokenCreationFormData {
   website: string;
   twitter: string;
   telegram: string;
-  mintAuthorityOption: 'keep' | 'revoke' | null;
-  freezeAuthorityOption: 'disable' | 'keep' | null;
+  revokeMintAuthority: boolean;
+  revokeFreezeAuthority: boolean;
+  revokeUpdateAuthority: boolean;
+  mintAuthorityOption?: 'keep' | 'revoke' | null;
+  freezeAuthorityOption?: 'disable' | 'keep' | null;
 }
 
 export type CreationStep = 
