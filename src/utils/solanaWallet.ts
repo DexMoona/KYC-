@@ -540,6 +540,12 @@ export async function connectWalletProvider(
   // MOBILE FLOW:
   // If on mobile and provider is not injected, OR forceMobileDeepLink requested
   if (isMobile && (!provider || options?.forceMobileDeepLink)) {
+    // DO NOT REDIRECT AUTOMATICALLY ON PAGE LOAD (onlyIfTrusted = true)
+    if (options?.onlyIfTrusted) {
+      logWalletStage('wallet detection', 'warn', 'Skipping mobile deep link auto-reconnect to prevent unwanted wallet app launch.');
+      throw new Error('Eager reconnect not supported via mobile deep links. User must click connect.');
+    }
+
     const { universalLink, inAppBrowseLink } = buildMobileConnectDeepLink(walletName);
 
     logWalletStage(
