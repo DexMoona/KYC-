@@ -1,6 +1,6 @@
 {
-  "name": "Remix Copy of Remix: Remix: Remix: Remix: Remix: Remix: Remix: Remix: Remix: Remix: Decentralized Exchange Analytics Platform",
-  "description": "Enterprise-grade real-time DEX analytics, token risk scoring, and AI-powered contract analysis across major blockchains.",
+  "name": "SURCHI",
+  "description": "SURCHI is an enterprise-grade decentralized exchange analytics platform providing real-time multi-chain token tracking, DEX screening, smart whale monitoring, and AI-powered contract security auditing.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

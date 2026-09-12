@@ -235,7 +235,7 @@ router.post('/api/token-creator/metadata', (req: Request, res: Response) => {
       symbol: symbol.trim().toUpperCase(),
       description: description?.trim() || `${name.trim()} (${symbol.trim().toUpperCase()}) token created via SURCHI Token Creator on Solana.`,
       image: fullLogoUrl,
-      external_url: website?.trim() || 'https://surchi.xyz',
+      external_url: website?.trim() || 'https://www.surchi.xyz/',
       attributes: [
         { trait_type: 'Created With', value: 'SURCHI Solana Token Creator' },
         { trait_type: 'Decimals', value: req.body.decimals ?? 9 },
