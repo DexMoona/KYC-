@@ -8,7 +8,6 @@ import {
   RefreshCw,
   ShieldCheck,
   AlertCircle,
-  Smartphone,
   CheckCircle2,
   LogOut,
   Sparkles
@@ -16,12 +15,14 @@ import {
 import { useSolanaWallet } from '../context/SolanaWalletContext';
 import {
   getSolscanAddressUrl,
-  WalletName,
-  PHANTOM_DOWNLOAD_URL,
-  SOLFLARE_DOWNLOAD_URL
+  WalletName
 } from '../utils/solanaWallet';
 
-export default function WalletModal() {
+interface WalletModalProps {
+  onConnected?: () => void;
+}
+
+export default function WalletModal({ onConnected }: WalletModalProps = {}) {
   const {
     connectedWallet,
     solBalance,
@@ -47,6 +48,8 @@ export default function WalletModal() {
     setSelectedWalletPending(walletName);
     try {
       await connectWallet(walletName);
+      setWalletModalOpen(false);
+      onConnected?.();
     } catch (err) {
       // Error handled in context
     } finally {
@@ -201,10 +204,13 @@ export default function WalletModal() {
               <button
                 type="button"
                 id="btn-close-connected-modal"
-                onClick={() => setWalletModalOpen(false)}
-                className="w-full py-2.5 px-4 rounded-xl bg-elegant-bg hover:bg-elegant-surface-hover border border-elegant-border text-white font-bold text-xs font-mono uppercase tracking-wider transition-all cursor-pointer"
+                onClick={() => {
+                  setWalletModalOpen(false);
+                  onConnected?.();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-elegant-gold hover:bg-elegant-gold-hover text-elegant-bg font-bold text-xs font-mono uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center space-x-1.5"
               >
-                Done
+                <span>Token Creator Panel</span>
               </button>
             </div>
           </div>
@@ -253,14 +259,15 @@ export default function WalletModal() {
                 return (
                   <div
                     key={wallet.name}
-                    className="border border-elegant-border rounded-xl bg-elegant-bg/60 hover:border-elegant-gold/40 transition-all overflow-hidden"
+                    onClick={() => !isConnecting && handleConnect(wallet.name)}
+                    className="border border-elegant-border hover:border-elegant-gold/50 rounded-xl bg-elegant-bg/60 hover:bg-elegant-surface/80 transition-all overflow-hidden cursor-pointer group"
                   >
                     <div className="p-3.5 flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3 min-w-0">
                         <img
                           src={wallet.icon}
                           alt={wallet.name}
-                          className="w-9 h-9 rounded-xl object-contain bg-black/40 p-1 shrink-0"
+                          className="w-9 h-9 rounded-xl object-contain bg-black/40 p-1 shrink-0 group-hover:scale-105 transition-transform"
                         />
                         <div className="min-w-0">
                           <div className="font-bold text-white text-sm flex items-center space-x-2">
@@ -276,63 +283,32 @@ export default function WalletModal() {
                               ? 'Official Universal Link connection'
                               : wallet.installed
                               ? 'Solana browser extension ready'
-                              : 'Extension not installed'}
+                              : 'Solana wallet'}
                           </div>
                         </div>
                       </div>
 
-                      {/* Connect or Install Button */}
-                      {wallet.installed || isMobile ? (
-                        <button
-                          type="button"
-                          id={`btn-connect-${wallet.name.toLowerCase()}`}
-                          onClick={() => handleConnect(wallet.name)}
-                          disabled={isConnecting}
-                          className="py-2 px-3.5 rounded-lg bg-elegant-gold hover:bg-elegant-gold-hover disabled:opacity-50 text-elegant-bg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 shadow-sm"
-                        >
-                          {isSelectedPending ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              <span>Opening...</span>
-                            </>
-                          ) : (
-                            <span>Connect</span>
-                          )}
-                        </button>
-                      ) : (
-                        <a
-                          href={wallet.walletUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/15 text-white font-semibold text-[11px] transition-colors flex items-center space-x-1 shrink-0"
-                        >
-                          <span>Install {wallet.name}</span>
-                          <ExternalLink className="w-3 h-3 opacity-70" />
-                        </a>
-                      )}
+                      {/* Direct Connect Button */}
+                      <button
+                        type="button"
+                        id={`btn-connect-${wallet.name.toLowerCase()}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleConnect(wallet.name);
+                        }}
+                        disabled={isConnecting}
+                        className="py-2 px-3.5 rounded-lg bg-elegant-gold hover:bg-elegant-gold-hover disabled:opacity-50 text-elegant-bg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 shadow-sm"
+                      >
+                        {isSelectedPending ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Opening...</span>
+                          </>
+                        ) : (
+                          <span>Connect</span>
+                        )}
+                      </button>
                     </div>
-
-                    {/* Mobile App Helpers (Install Solflare or Open in In-App Browser) */}
-                    {isMobile && (
-                      <div className="px-3.5 py-2 bg-white/5 border-t border-elegant-border/40 flex items-center justify-between text-[11px] text-elegant-text-secondary gap-2">
-                        <a
-                          href={wallet.walletUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-1 text-slate-300 hover:text-white transition-colors"
-                        >
-                          <ExternalLink className="w-3 h-3 text-slate-400" />
-                          <span>Install {wallet.name}</span>
-                        </a>
-                        <a
-                          href={wallet.mobileAppUrl}
-                          className="text-elegant-gold hover:underline font-semibold flex items-center space-x-1"
-                        >
-                          <Smartphone className="w-3 h-3" />
-                          <span>Open in App</span>
-                        </a>
-                      </div>
-                    )}
                   </div>
                 );
               })}

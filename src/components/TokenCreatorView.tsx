@@ -77,26 +77,86 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     refreshBalance,
   } = useSolanaWallet();
 
-  // Form State
-  const [formData, setFormData] = useState<TokenCreationFormData>({
-    name: '',
-    symbol: '',
-    decimals: 9,
-    supply: '1000000',
-    description: '',
-    logoFile: null,
-    logoPreview: null,
-    logoUrl: '',
-    website: '',
-    twitter: '',
-    telegram: '',
-    mintAuthorityOption: null,
-    freezeAuthorityOption: null,
+  // Form State with session draft caching (preserves inputs during wallet connection redirects)
+  const [formData, setFormData] = useState<TokenCreationFormData>(() => {
+    try {
+      const saved = sessionStorage.getItem('surchi_token_creator_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || '',
+          symbol: parsed.symbol || '',
+          decimals: typeof parsed.decimals === 'number' ? parsed.decimals : 9,
+          supply: parsed.supply || '1000000',
+          description: parsed.description || '',
+          logoFile: null,
+          logoPreview: parsed.logoPreview || null,
+          logoUrl: parsed.logoUrl || '',
+          website: parsed.website || '',
+          twitter: parsed.twitter || '',
+          telegram: parsed.telegram || '',
+          mintAuthorityOption: parsed.mintAuthorityOption || null,
+          freezeAuthorityOption: parsed.freezeAuthorityOption || null,
+        };
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      name: '',
+      symbol: '',
+      decimals: 9,
+      supply: '1000000',
+      description: '',
+      logoFile: null,
+      logoPreview: null,
+      logoUrl: '',
+      website: '',
+      twitter: '',
+      telegram: '',
+      mintAuthorityOption: null,
+      freezeAuthorityOption: null,
+    };
   });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('surchi_token_creator_draft', JSON.stringify({
+        name: formData.name,
+        symbol: formData.symbol,
+        decimals: formData.decimals,
+        supply: formData.supply,
+        description: formData.description,
+        logoPreview: formData.logoPreview,
+        logoUrl: formData.logoUrl,
+        website: formData.website,
+        twitter: formData.twitter,
+        telegram: formData.telegram,
+        mintAuthorityOption: formData.mintAuthorityOption,
+        freezeAuthorityOption: formData.freezeAuthorityOption,
+      }));
+    } catch {
+      // ignore
+    }
+  }, [formData]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [fileDragActive, setFileDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus and scroll refs for non-optional (required) form fields
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const symbolInputRef = useRef<HTMLInputElement>(null);
+  const supplyInputRef = useRef<HTMLInputElement>(null);
+  const decimalsInputRef = useRef<HTMLInputElement>(null);
+
+  // Real-time validity checks for non-optional fields to indicate green
+  const isNameValid = formData.name.trim().length > 0 && formData.name.trim().length <= 32;
+  const isSymbolValid = formData.symbol.trim().length > 0 && formData.symbol.trim().length <= 10;
+  const cleanSupplyNumber = Number(formData.supply.replace(/,/g, '').trim());
+  const isSupplyValid = formData.supply.trim().length > 0 && !isNaN(cleanSupplyNumber) && cleanSupplyNumber > 0;
+  const decNumber = Number(formData.decimals);
+  const isDecimalsValid = formData.decimals !== ('' as any) && !isNaN(decNumber) && decNumber >= 0 && decNumber <= 9 && Number.isInteger(decNumber);
 
   // Execution & Progress State
   const [creationStep, setCreationStep] = useState<CreationStep>('idle');
@@ -195,41 +255,109 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     reader.readAsDataURL(file);
   };
 
-  // Form Validation
-  const validateForm = (): boolean => {
+  // Form Validation - identifies missing non-optional fields, scrolls to & focuses the first missing field
+  const validateForm = (shouldScrollToMissing = true): boolean => {
     const errors: Record<string, string> = {};
+    let firstMissingKey: 'name' | 'symbol' | 'supply' | 'decimals' | 'website' | null = null;
 
     if (!formData.name.trim()) {
       errors.name = 'Token Name is required.';
+      if (!firstMissingKey) firstMissingKey = 'name';
     } else if (formData.name.trim().length > 32) {
       errors.name = 'Token Name must be 32 characters or fewer.';
+      if (!firstMissingKey) firstMissingKey = 'name';
     }
 
     if (!formData.symbol.trim()) {
       errors.symbol = 'Token Symbol is required.';
+      if (!firstMissingKey) firstMissingKey = 'symbol';
     } else if (formData.symbol.trim().length > 10) {
       errors.symbol = 'Token Symbol must be 10 characters or fewer.';
+      if (!firstMissingKey) firstMissingKey = 'symbol';
     }
 
-    const cleanSupply = formData.supply.replace(/,/g, '').trim();
-    if (!cleanSupply || isNaN(Number(cleanSupply)) || Number(cleanSupply) <= 0) {
+    const cleanSupplyStr = formData.supply.replace(/,/g, '').trim();
+    if (!cleanSupplyStr || isNaN(Number(cleanSupplyStr)) || Number(cleanSupplyStr) <= 0) {
       errors.supply = 'Total Supply must be a positive number.';
+      if (!firstMissingKey) firstMissingKey = 'supply';
     }
 
-    const decNum = Number(formData.decimals);
-    if (formData.decimals === ('' as any) || isNaN(decNum) || decNum < 0 || decNum > 9 || !Number.isInteger(decNum)) {
+    const decVal = Number(formData.decimals);
+    if (formData.decimals === ('' as any) || isNaN(decVal) || decVal < 0 || decVal > 9 || !Number.isInteger(decVal)) {
       errors.decimals = 'Decimals must be an integer between 0 and 9.';
+      if (!firstMissingKey) firstMissingKey = 'decimals';
     }
 
     if (formData.website && !formData.website.startsWith('http://') && !formData.website.startsWith('https://')) {
       errors.website = 'Website must start with https:// or http://';
+      if (!firstMissingKey) firstMissingKey = 'website';
     }
 
     setFormErrors(errors);
+
+    if (firstMissingKey && shouldScrollToMissing) {
+      const fieldNames: Record<string, string> = {
+        name: 'Token Name',
+        symbol: 'Token Symbol',
+        supply: 'Total Initial Supply',
+        decimals: 'Decimals',
+        website: 'Website URL',
+      };
+
+      const refMap: Record<string, React.RefObject<HTMLInputElement>> = {
+        name: nameInputRef,
+        symbol: symbolInputRef,
+        supply: supplyInputRef,
+        decimals: decimalsInputRef,
+      };
+
+      const targetRef = refMap[firstMissingKey];
+      const targetElement = targetRef?.current || document.getElementById(`input-token-${firstMissingKey}`);
+
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          targetElement.focus();
+        }, 180);
+      }
+
+      setErrorMessage(`Please fill in the required field: ${fieldNames[firstMissingKey]}.`);
+    }
+
     return Object.keys(errors).length === 0;
   };
 
-  // Format Total Supply with Commas
+  // Change Handlers that clear errors dynamically when field becomes valid
+  const handleNameChange = (val: string) => {
+    setFormData(prev => ({ ...prev, name: val }));
+    if (formErrors.name && val.trim().length > 0 && val.trim().length <= 32) {
+      setFormErrors(prev => {
+        const copy = { ...prev };
+        delete copy.name;
+        return copy;
+      });
+      if (errorMessage?.includes('Token Name')) {
+        setErrorMessage(null);
+      }
+    }
+  };
+
+  const handleSymbolChange = (val: string) => {
+    const upper = val.toUpperCase();
+    setFormData(prev => ({ ...prev, symbol: upper }));
+    if (formErrors.symbol && upper.trim().length > 0 && upper.trim().length <= 10) {
+      setFormErrors(prev => {
+        const copy = { ...prev };
+        delete copy.symbol;
+        return copy;
+      });
+      if (errorMessage?.includes('Token Symbol')) {
+        setErrorMessage(null);
+      }
+    }
+  };
+
+  // Format Total Supply with Commas and clear error when valid
   const handleSupplyChange = (rawVal: string) => {
     const stripped = rawVal.replace(/[^0-9.]/g, '');
     const parts = stripped.split('.');
@@ -237,6 +365,37 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     const formattedWhole = parts[0] ? Number(parts[0]).toLocaleString('en-US') : '';
     const formatted = parts.length > 1 ? `${formattedWhole}.${parts[1]}` : formattedWhole;
     setFormData(prev => ({ ...prev, supply: formatted }));
+
+    const cleanNum = Number(stripped);
+    if (formErrors.supply && stripped && !isNaN(cleanNum) && cleanNum > 0) {
+      setFormErrors(prev => {
+        const copy = { ...prev };
+        delete copy.supply;
+        return copy;
+      });
+      if (errorMessage?.includes('Total Supply')) {
+        setErrorMessage(null);
+      }
+    }
+  };
+
+  const handleDecimalsChange = (val: string) => {
+    if (val === '') {
+      setFormData(prev => ({ ...prev, decimals: '' as any }));
+    } else {
+      const parsed = parseInt(val, 10);
+      setFormData(prev => ({ ...prev, decimals: isNaN(parsed) ? ('' as any) : parsed }));
+      if (formErrors.decimals && !isNaN(parsed) && parsed >= 0 && parsed <= 9) {
+        setFormErrors(prev => {
+          const copy = { ...prev };
+          delete copy.decimals;
+          return copy;
+        });
+        if (errorMessage?.includes('Decimals')) {
+          setErrorMessage(null);
+        }
+      }
+    }
   };
 
   // Calculate Raw Units for Preview
@@ -255,14 +414,14 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
   const handleCreateToken = async () => {
     setErrorMessage(null);
 
-    // 1. Check wallet
-    if (!connectedWallet) {
-      setWalletModalOpen(true);
+    // 1. Validate required non-optional fields FIRST - takes user back to missing form if skipped
+    if (!validateForm(true)) {
       return;
     }
 
-    // 2. Validate form
-    if (!validateForm()) {
+    // 2. Check wallet connection
+    if (!connectedWallet) {
+      setWalletModalOpen(true);
       return;
     }
 
@@ -396,6 +555,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     setCreationStep('idle');
     setSuccessRecord(null);
     setErrorMessage(null);
+    setFormErrors({});
     setFormData({
       name: '',
       symbol: '',
@@ -717,42 +877,102 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
 
               {/* Token Name & Symbol */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-white uppercase tracking-wider mb-2">
-                    Token Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SURCHI AI Token"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    maxLength={32}
-                    className={`w-full bg-elegant-bg border ${
-                      formErrors.name ? 'border-red-500' : 'border-elegant-border focus:border-elegant-gold'
-                    } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-colors`}
-                  />
+                <div id="field-container-name">
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="input-token-name" className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
+                      <span>Token Name</span>
+                      <span className="text-red-400">*</span>
+                    </label>
+                    {isNameValid ? (
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 flex items-center space-x-1 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded animate-fade-in">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Filled</span>
+                      </span>
+                    ) : formErrors.name ? (
+                      <span className="text-[10px] font-mono font-bold text-red-400 flex items-center space-x-1 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded animate-pulse">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Required</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative">
+                    <input
+                      ref={nameInputRef}
+                      id="input-token-name"
+                      type="text"
+                      placeholder="e.g. SURCHI AI Token"
+                      value={formData.name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      maxLength={32}
+                      className={`w-full bg-elegant-bg border ${
+                        formErrors.name
+                          ? 'border-red-500 focus:border-red-400 bg-red-500/[0.04] ring-1 ring-red-500/30'
+                          : isNameValid
+                          ? 'border-emerald-500/80 focus:border-emerald-400 bg-emerald-500/[0.04] ring-1 ring-emerald-500/20 text-white'
+                          : 'border-elegant-border focus:border-elegant-gold'
+                      } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-all pr-10`}
+                    />
+                    {isNameValid && (
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center text-emerald-400 pointer-events-none">
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                    )}
+                  </div>
                   {formErrors.name && (
-                    <p className="text-red-400 text-xs font-mono mt-1.5">{formErrors.name}</p>
+                    <p className="text-red-400 text-xs font-mono mt-1.5 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{formErrors.name}</span>
+                    </p>
                   )}
                   <p className="text-[11px] text-white/40 font-mono mt-1">Max 32 characters</p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-white uppercase tracking-wider mb-2">
-                    Token Symbol <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SRT"
-                    value={formData.symbol}
-                    onChange={(e) => setFormData(prev => ({ ...prev, symbol: e.target.value.toUpperCase() }))}
-                    maxLength={10}
-                    className={`w-full bg-elegant-bg border ${
-                      formErrors.symbol ? 'border-red-500' : 'border-elegant-border focus:border-elegant-gold'
-                    } rounded-xl px-4 py-3 text-sm text-white font-mono uppercase focus:outline-none transition-colors`}
-                  />
+                <div id="field-container-symbol">
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="input-token-symbol" className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
+                      <span>Token Symbol</span>
+                      <span className="text-red-400">*</span>
+                    </label>
+                    {isSymbolValid ? (
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 flex items-center space-x-1 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded animate-fade-in">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Filled</span>
+                      </span>
+                    ) : formErrors.symbol ? (
+                      <span className="text-[10px] font-mono font-bold text-red-400 flex items-center space-x-1 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded animate-pulse">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Required</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative">
+                    <input
+                      ref={symbolInputRef}
+                      id="input-token-symbol"
+                      type="text"
+                      placeholder="e.g. SRT"
+                      value={formData.symbol}
+                      onChange={(e) => handleSymbolChange(e.target.value)}
+                      maxLength={10}
+                      className={`w-full bg-elegant-bg border ${
+                        formErrors.symbol
+                          ? 'border-red-500 focus:border-red-400 bg-red-500/[0.04] ring-1 ring-red-500/30'
+                          : isSymbolValid
+                          ? 'border-emerald-500/80 focus:border-emerald-400 bg-emerald-500/[0.04] ring-1 ring-emerald-500/20 text-white'
+                          : 'border-elegant-border focus:border-elegant-gold'
+                      } rounded-xl px-4 py-3 text-sm text-white font-mono uppercase focus:outline-none transition-all pr-10`}
+                    />
+                    {isSymbolValid && (
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center text-emerald-400 pointer-events-none">
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                    )}
+                  </div>
                   {formErrors.symbol && (
-                    <p className="text-red-400 text-xs font-mono mt-1.5">{formErrors.symbol}</p>
+                    <p className="text-red-400 text-xs font-mono mt-1.5 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{formErrors.symbol}</span>
+                    </p>
                   )}
                   <p className="text-[11px] text-white/40 font-mono mt-1">Ticker symbol, max 10 chars</p>
                 </div>
@@ -760,53 +980,105 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
 
               {/* Total Supply & Decimals */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-white uppercase tracking-wider mb-2">
-                    Total Initial Supply <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 1,000,000"
-                    value={formData.supply}
-                    onChange={(e) => handleSupplyChange(e.target.value)}
-                    className={`w-full bg-elegant-bg border ${
-                      formErrors.supply ? 'border-red-500' : 'border-elegant-border focus:border-elegant-gold'
-                    } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-colors`}
-                  />
+                <div id="field-container-supply">
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="input-token-supply" className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
+                      <span>Total Initial Supply</span>
+                      <span className="text-red-400">*</span>
+                    </label>
+                    {isSupplyValid ? (
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 flex items-center space-x-1 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded animate-fade-in">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Filled</span>
+                      </span>
+                    ) : formErrors.supply ? (
+                      <span className="text-[10px] font-mono font-bold text-red-400 flex items-center space-x-1 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded animate-pulse">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Required</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative">
+                    <input
+                      ref={supplyInputRef}
+                      id="input-token-supply"
+                      type="text"
+                      placeholder="e.g. 1,000,000"
+                      value={formData.supply}
+                      onChange={(e) => handleSupplyChange(e.target.value)}
+                      className={`w-full bg-elegant-bg border ${
+                        formErrors.supply
+                          ? 'border-red-500 focus:border-red-400 bg-red-500/[0.04] ring-1 ring-red-500/30'
+                          : isSupplyValid
+                          ? 'border-emerald-500/80 focus:border-emerald-400 bg-emerald-500/[0.04] ring-1 ring-emerald-500/20 text-white'
+                          : 'border-elegant-border focus:border-elegant-gold'
+                      } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-all pr-10`}
+                    />
+                    {isSupplyValid && (
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center text-emerald-400 pointer-events-none">
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                    )}
+                  </div>
                   {formErrors.supply && (
-                    <p className="text-red-400 text-xs font-mono mt-1.5">{formErrors.supply}</p>
+                    <p className="text-red-400 text-xs font-mono mt-1.5 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{formErrors.supply}</span>
+                    </p>
                   )}
                   <p className="text-[11px] text-white/40 font-mono mt-1">
                     Raw units on-chain: <span className="text-elegant-gold">{rawSupplyPreview}</span>
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono font-semibold text-white uppercase tracking-wider mb-2">
-                    Decimals <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={9}
-                    step={1}
-                    value={formData.decimals === ('' as any) || isNaN(formData.decimals) ? '' : formData.decimals}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        setFormData(prev => ({ ...prev, decimals: '' as any }));
-                      } else {
-                        const parsed = parseInt(val, 10);
-                        setFormData(prev => ({ ...prev, decimals: isNaN(parsed) ? 9 : parsed }));
-                      }
-                    }}
-                    placeholder="9"
-                    className={`w-full bg-elegant-bg border ${
-                      formErrors.decimals ? 'border-red-500' : 'border-elegant-border focus:border-elegant-gold'
-                    } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-colors`}
-                  />
+                <div id="field-container-decimals">
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="input-token-decimals" className="text-xs font-mono font-semibold text-white uppercase tracking-wider flex items-center space-x-1.5">
+                      <span>Decimals</span>
+                      <span className="text-red-400">*</span>
+                    </label>
+                    {isDecimalsValid ? (
+                      <span className="text-[10px] font-mono font-bold text-emerald-400 flex items-center space-x-1 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded animate-fade-in">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Filled</span>
+                      </span>
+                    ) : formErrors.decimals ? (
+                      <span className="text-[10px] font-mono font-bold text-red-400 flex items-center space-x-1 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded animate-pulse">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Required</span>
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative">
+                    <input
+                      ref={decimalsInputRef}
+                      id="input-token-decimals"
+                      type="number"
+                      min={0}
+                      max={9}
+                      step={1}
+                      value={formData.decimals === ('' as any) || isNaN(formData.decimals) ? '' : formData.decimals}
+                      onChange={(e) => handleDecimalsChange(e.target.value)}
+                      placeholder="9"
+                      className={`w-full bg-elegant-bg border ${
+                        formErrors.decimals
+                          ? 'border-red-500 focus:border-red-400 bg-red-500/[0.04] ring-1 ring-red-500/30'
+                          : isDecimalsValid
+                          ? 'border-emerald-500/80 focus:border-emerald-400 bg-emerald-500/[0.04] ring-1 ring-emerald-500/20 text-white'
+                          : 'border-elegant-border focus:border-elegant-gold'
+                      } rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none transition-all pr-10`}
+                    />
+                    {isDecimalsValid && (
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center text-emerald-400 pointer-events-none">
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                      </div>
+                    )}
+                  </div>
                   {formErrors.decimals && (
-                    <p className="text-red-400 text-xs font-mono mt-1.5">{formErrors.decimals}</p>
+                    <p className="text-red-400 text-xs font-mono mt-1.5 flex items-center space-x-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{formErrors.decimals}</span>
+                    </p>
                   )}
                   <p className="text-[11px] text-white/40 font-mono mt-1">
                     Standard is 9 for Solana SPL tokens (editable 0–9)

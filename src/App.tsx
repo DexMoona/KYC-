@@ -41,13 +41,43 @@ import AuditorView from './components/AuditorView';
 import AppFooter from './components/AppFooter';
 import TokenCreatorView from './components/TokenCreatorView';
 import WalletModal from './components/WalletModal';
+import { useSolanaWallet } from './context/SolanaWalletContext';
 import { Token } from './types';
 
 type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' | 'news' | 'admin' | 'auditor' | 'token-creator';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const { connectedWallet } = useSolanaWallet();
+  const prevConnectedWalletRef = useRef<string | null>(null);
+
+  const [activeView, setActiveView] = useState<ActiveView>(() => {
+    if (typeof window !== 'undefined') {
+      const search = window.location.search;
+      if (
+        search.includes('solflare_encryption_public_key') ||
+        search.includes('phantom_encryption_public_key') ||
+        search.includes('wallet_encryption_public_key') ||
+        search.includes('surchi_wallet_callback') ||
+        localStorage.getItem('surchi_pending_wallet')
+      ) {
+        return 'token-creator';
+      }
+    }
+    return 'dashboard';
+  });
   const [selectedTokenAddress, setSelectedTokenAddress] = useState<string | null>(null);
+
+  // When a wallet is connected, SURCHI app returns to create token page panel automatically
+  useEffect(() => {
+    if (connectedWallet && !prevConnectedWalletRef.current) {
+      setActiveView('token-creator');
+      if (mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    prevConnectedWalletRef.current = connectedWallet?.address || null;
+  }, [connectedWallet]);
   
   // Theme state
   const [theme, setTheme] = useState<'cyan' | 'gold' | 'green' | 'ruby'>(() => {
@@ -680,7 +710,15 @@ export default function App() {
       </div>
 
       {/* Global Solana Wallet Modal */}
-      <WalletModal />
+      <WalletModal
+        onConnected={() => {
+          setActiveView('token-creator');
+          if (mainRef.current) {
+            mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }
