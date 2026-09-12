@@ -14,8 +14,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
   useEffect(() => {
     // If reduced motion is preferred, make it much faster.
-    // 3300ms display time to allow the slower 2-pulse animation (3.0s) to complete fully.
-    const displayTime = prefersReducedMotion ? 100 : 3300;
+    // 2100ms display time to allow the slower 1-pulse animation (1.8s) to complete fully.
+    const displayTime = prefersReducedMotion ? 100 : 2100;
 
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -46,7 +46,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             transition={{ 
               duration: prefersReducedMotion ? 0.1 : 0.6, 
               ease: 'easeInOut',
-              repeat: prefersReducedMotion ? 0 : 4, // 4 repeats = 5 iterations (0.6s * 5 = 3.0s total). Result: 2 slower distinct dims.
+              repeat: prefersReducedMotion ? 0 : 2, // 2 repeats = 3 iterations (0.6s * 3 = 1.8s total). Result: 1 slower distinct dim.
               repeatType: 'mirror'
             }}
             className="flex flex-col items-center"
