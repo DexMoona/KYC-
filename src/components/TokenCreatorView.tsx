@@ -433,7 +433,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
     const minRequiredSol = config.feeSol + 0.006;
     if (solBalance !== null && solBalance < minRequiredSol) {
       setErrorMessage(
-        `Insufficient SOL balance. Your wallet has ${solBalance.toFixed(4)} SOL, but token creation requires ~${minRequiredSol.toFixed(4)} SOL (${config.feeSol} SOL SURCHI fee + rent/gas).`
+        `Insufficient SOL balance. Your wallet has ${solBalance.toFixed(4)} SOL, You need ${minRequiredSol.toFixed(4)} SOL to create token.`
       );
       return;
     }
@@ -1469,7 +1469,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
               ) : (
                 <>
                   <Coins className="w-4 h-4" />
-                  <span>Create Token ({config.feeSol} SOL)</span>
+                  <span>Create Token ({(config.feeSol + 0.006).toFixed(4)} SOL)</span>
                 </>
               )}
             </button>

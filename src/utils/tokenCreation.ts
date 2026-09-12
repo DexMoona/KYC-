@@ -188,7 +188,7 @@ export async function executeRealSplTokenCreation(
     const currentSol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
     const requiredSol = (Number(minRequiredLamports) / LAMPORTS_PER_SOL).toFixed(4);
     throw new Error(
-      `Insufficient SOL balance. You have ${currentSol} SOL, but token creation requires ~${requiredSol} SOL (${feeSol} SOL SURCHI fee + rent/gas).`
+      `Insufficient SOL balance. Your wallet has ${currentSol} SOL, You need ${requiredSol} SOL to create token.`
     );
   }
 
