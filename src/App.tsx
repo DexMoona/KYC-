@@ -40,12 +40,13 @@ import SurchiLogo from './components/SurchiLogo';
 import AuditorView from './components/AuditorView';
 import AppFooter from './components/AppFooter';
 import TokenCreatorView from './components/TokenCreatorView';
+import PrivacyPolicyView from './components/PrivacyPolicyView';
 import WalletModal from './components/WalletModal';
 import SplashScreen from './components/SplashScreen';
 import { useSolanaWallet } from './context/SolanaWalletContext';
 import { Token } from './types';
 
-type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' | 'news' | 'admin' | 'auditor' | 'token-creator';
+type ActiveView = 'dashboard' | 'screener' | 'details' | 'whales' | 'portfolio' | 'news' | 'admin' | 'auditor' | 'token-creator' | 'privacy-policy';
 
 export default function App() {
   const { connectedWallet } = useSolanaWallet();
@@ -252,17 +253,6 @@ export default function App() {
                 </div>
               </a>
               <a
-                href="https://explorer.surchi.xyz/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
-              >
-                <div className="flex items-center space-x-3">
-                  <Terminal className="w-4 h-4 shrink-0 text-elegant-gold" />
-                  <span>Surchi Terminal</span>
-                </div>
-              </a>
-              <a
                 href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -284,19 +274,40 @@ export default function App() {
                   <span>Academy</span>
                 </div>
               </a>
+              <a
+                href="https://explorer.surchi.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <Terminal className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>Surchi Terminal</span>
+                </div>
+              </a>
 
 
             </nav>
           </div>
 
           {/* Surchi Active status info */}
-          <div className="bg-elegant-surface border border-elegant-border p-4 rounded-xl text-xs space-y-2">
+          <div className="bg-elegant-surface border border-elegant-border p-4 rounded-xl text-xs space-y-2 mb-2">
             <div className="flex items-center space-x-1 text-elegant-gold font-bold font-mono uppercase text-[10px] gold-glow">
               <Sparkles className="w-3.5 h-3.5" /> SURCHI AI Engine
             </div>
             <p className="text-elegant-text-secondary leading-relaxed font-sans text-[11px]">
               Fully unlocked access enabled. All advanced contract audits, portfolio analytics, and premium layers are available.
             </p>
+          </div>
+          
+          {/* Privacy Policy Link */}
+          <div className="text-center pb-2">
+            <button
+              onClick={() => setActiveView('privacy-policy')}
+              className="text-[10px] text-elegant-text-secondary hover:text-white transition-colors uppercase tracking-wider font-semibold cursor-pointer"
+            >
+              Privacy Policy
+            </button>
           </div>
         </aside>
 
@@ -476,19 +487,6 @@ export default function App() {
                     </a>
 
                     <a
-                      href="https://explorer.surchi.xyz/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
-                    >
-                      <div className="flex items-center space-x-3.5">
-                        <Terminal className="w-4 h-4 text-elegant-gold shrink-0" />
-                        <span>Surchi Terminal</span>
-                      </div>
-                    </a>
-
-                    <a
                       href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -511,6 +509,19 @@ export default function App() {
                       <div className="flex items-center space-x-3.5">
                         <GraduationCap className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>Academy</span>
+                      </div>
+                    </a>
+
+                    <a
+                      href="https://explorer.surchi.xyz/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <Terminal className="w-4 h-4 text-elegant-gold shrink-0" />
+                        <span>Surchi Terminal</span>
                       </div>
                     </a>
                   </div>
@@ -594,8 +605,14 @@ export default function App() {
                 </div>
 
                 {/* Drawer Subtle Footer */}
-                <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex items-center justify-center text-[11px] text-elegant-text-secondary shrink-0 font-mono">
+                <div className="px-4 py-3 bg-elegant-bg border-t border-elegant-border flex flex-col items-center justify-center text-[11px] text-elegant-text-secondary shrink-0 font-mono space-y-2">
                   <span>POWERED BY SURCHI ECOSYSTEM</span>
+                  <button
+                    onClick={() => { setActiveView('privacy-policy'); setMobileMenuOpen(false); }}
+                    className="text-[10px] hover:text-white transition-colors uppercase tracking-wider font-semibold cursor-pointer"
+                  >
+                    Privacy Policy
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -653,6 +670,10 @@ export default function App() {
 
           {activeView === 'token-creator' && (
             <TokenCreatorView onClose={() => setActiveView('dashboard')} />
+          )}
+
+          {activeView === 'privacy-policy' && (
+            <PrivacyPolicyView onClose={() => setActiveView('dashboard')} />
           )}
 
           {/* Surchi Ecosystem Footer */}
