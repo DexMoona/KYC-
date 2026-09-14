@@ -26,7 +26,8 @@ import {
   MessageSquare,
   Github,
   BookOpenText,
-  Coins
+  Coins,
+  Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import DashboardView from './components/DashboardView';
@@ -599,6 +600,17 @@ export default function App() {
                       <div className="flex items-center space-x-3">
                         <MessageSquare className="w-4 h-4 text-elegant-text-secondary shrink-0" />
                         <span>Discord</span>
+                      </div>
+                    </a>
+
+                    <a
+                      href="mailto:support@surchi.xyz"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Mail className="w-4 h-4 text-elegant-text-secondary shrink-0" />
+                        <span>Contact Us</span>
                       </div>
                     </a>
                   </div>

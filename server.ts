@@ -4511,9 +4511,9 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
             jsonrpc: '2.0',
             id: 1,
             method: 'getSignaturesForAddress',
-            params: [pairAddress, { limit: 20 }]
+            params: [pairAddress, { limit: 5 }] // Reduced limit to 5 to prevent long sequential loops
           })
-        }, 2000);
+        }, 5000); // Increased timeout to 5000ms to prevent AbortError
 
         if (solRes.ok) {
           const solData = await solRes.json();
@@ -4539,7 +4539,7 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
                   method: 'getTransaction',
                   params: [signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]
                 })
-              }, 1500);
+              }, 3000); // Increased timeout to 3000ms
 
               if (txRes.ok) {
                 const txData = await txRes.json();
@@ -4601,7 +4601,7 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_blockNumber', params: [] })
-          }, 1500);
+          }, 3000);
 
           if (bRes.ok) {
             const bData = await bRes.json();
@@ -4624,7 +4624,7 @@ async function fetchDexScreenerLiveTransactions(tokenAddress: string): Promise<T
                     ]]
                   }]
                 })
-              }, 1500);
+              }, 3000);
 
               if (logsRes.ok) {
                 const logsData = await logsRes.json();
