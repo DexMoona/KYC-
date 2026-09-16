@@ -243,17 +243,6 @@ export default function App() {
 
               <span className="text-gray-600 text-[10px] font-mono font-bold uppercase block px-3 pt-5 mb-2 tracking-wider">DOCS & RESOURCES</span>
               <a
-                href="https://whitepaper.surchi.xyz/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
-              >
-                <div className="flex items-center space-x-3">
-                  <BookOpen className="w-4 h-4 shrink-0 text-elegant-gold" />
-                  <span>White Docs</span>
-                </div>
-              </a>
-              <a
                 href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -273,6 +262,17 @@ export default function App() {
                 <div className="flex items-center space-x-3">
                   <GraduationCap className="w-4 h-4 shrink-0 text-elegant-gold" />
                   <span>Academy</span>
+                </div>
+              </a>
+              <a
+                href="https://whitepaper.surchi.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold uppercase transition-all tracking-wide text-elegant-text-secondary hover:text-white hover:bg-elegant-surface-hover group"
+              >
+                <div className="flex items-center space-x-3">
+                  <BookOpen className="w-4 h-4 shrink-0 text-elegant-gold" />
+                  <span>White Paper</span>
                 </div>
               </a>
               <a
@@ -475,19 +475,6 @@ export default function App() {
                   {/* Secondary Navigation Section */}
                   <div className="space-y-1">
                     <a
-                      href="https://whitepaper.surchi.xyz/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
-                    >
-                      <div className="flex items-center space-x-3.5">
-                        <BookOpen className="w-4 h-4 text-elegant-gold shrink-0" />
-                        <span>White Docs</span>
-                      </div>
-                    </a>
-
-                    <a
                       href="https://solscan.io/token/C8QShhzBJEA769SYTKRfg2fFFNP3dxqaKumApMi4huhi"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -510,6 +497,18 @@ export default function App() {
                       <div className="flex items-center space-x-3.5">
                         <GraduationCap className="w-4 h-4 text-elegant-gold shrink-0" />
                         <span>Academy</span>
+                      </div>
+                    </a>
+                    <a
+                      href="https://whitepaper.surchi.xyz/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-elegant-text-secondary hover:bg-elegant-surface-hover/50 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center space-x-3.5">
+                        <BookOpen className="w-4 h-4 text-elegant-gold shrink-0" />
+                        <span>White Paper</span>
                       </div>
                     </a>
 
