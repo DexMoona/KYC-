@@ -50,7 +50,7 @@ import {
 } from '../utils/tokenCreation';
 
 const DEFAULT_FEE_WALLET = '7KiihM84H4T9gCLD61HpcRGtSapk9N2H3QAsn9A5y9Ng';
-const DEFAULT_FEE_SOL = 0.2;
+const DEFAULT_FEE_SOL = 0;
 
 interface TokenCreatorViewProps {
   onClose?: () => void;
@@ -185,7 +185,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
         if (res.ok) {
           const data = await res.json();
           setConfig({
-            feeSol: data.feeSol || DEFAULT_FEE_SOL,
+            feeSol: typeof data.feeSol === 'number' ? data.feeSol : DEFAULT_FEE_SOL,
             feeWallet: data.feeWallet || DEFAULT_FEE_WALLET,
             network: data.network || 'mainnet-beta',
             rpcEndpoint: data.rpcEndpoint || '/api/solana-rpc',
@@ -429,11 +429,11 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
       return;
     }
 
-    // 3. Balance Check
-    const minRequiredSol = config.feeSol + 0.006;
+    // 3. Balance Check: Only Solana blockchain creation fees (~0.006 SOL for rent-exemption & network tx)
+    const minRequiredSol = (config.feeSol || 0) + 0.006;
     if (solBalance !== null && solBalance < minRequiredSol) {
       setErrorMessage(
-        `Insufficient SOL balance. Your wallet has ${solBalance.toFixed(4)} SOL, You need ${minRequiredSol.toFixed(4)} SOL to create token.`
+        `Insufficient SOL balance. Your wallet has ${solBalance.toFixed(4)} SOL. You need ~${minRequiredSol.toFixed(3)} SOL to cover Solana blockchain token creation fees (rent-exemption and transaction fee).`
       );
       return;
     }
@@ -518,7 +518,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
 
       // 7. Authoritative Server-Side On-Chain Verification
       setCreationStep('verifying_on_chain');
-      setStepMessage('Verifying mint account, initial supply, and 0.1 SOL fee on Solana ledger...');
+      setStepMessage('Verifying mint account and initial supply on Solana ledger...');
 
       const verifyRes = await fetch('/api/token-creator/verify', {
         method: 'POST',
@@ -758,8 +758,8 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
                   <span className="text-white font-bold">{successRecord.decimals}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-elegant-text-secondary">Creation Fee Paid:</span>
-                  <span className="text-emerald-400 font-bold">{successRecord.creationFee}</span>
+                  <span className="text-elegant-text-secondary">Solana Blockchain Fee:</span>
+                  <span className="text-emerald-400 font-bold">{successRecord.creationFee || '~0.006 SOL'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-elegant-text-secondary">Solana Cluster:</span>
@@ -1469,7 +1469,7 @@ export default function TokenCreatorView({ onClose }: TokenCreatorViewProps = {}
               ) : (
                 <>
                   <Coins className="w-4 h-4" />
-                  <span>Create Token ({(config.feeSol + 0.006).toFixed(4)} SOL)</span>
+                  <span>CREATE TOKEN 0.006 SOL</span>
                 </>
               )}
             </button>

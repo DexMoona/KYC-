@@ -63,7 +63,7 @@ export type WalletConnectionStage =
 export interface WalletDebugLog {
   stage: WalletConnectionStage;
   timestamp: string;
-  status: 'info' | 'success' | 'error';
+  status: 'info' | 'success' | 'error' | 'warn';
   message: string;
   meta?: Record<string, any>;
 }
@@ -80,7 +80,7 @@ if (typeof window !== 'undefined') {
  */
 export function logWalletStage(
   stage: WalletConnectionStage,
-  status: 'info' | 'success' | 'error',
+  status: 'info' | 'success' | 'error' | 'warn',
   message: string,
   meta?: Record<string, any>
 ) {

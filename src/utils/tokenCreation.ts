@@ -175,20 +175,19 @@ export async function executeRealSplTokenCreation(
   }
 
   const rawSupply = calculateRawSupply(formData.supply, formData.decimals === '' ? 9 : formData.decimals);
-  const feeWalletPubkey = new PublicKey(feeWalletAddress);
-  const feeLamports = BigInt(Math.round(feeSol * LAMPORTS_PER_SOL));
+  const feeLamports = BigInt(Math.max(0, Math.round((feeSol || 0) * LAMPORTS_PER_SOL)));
 
   // 2. Check balance
   const balanceLamports = await connection.getBalance(wallet.publicKey, 'confirmed');
   const lamportsForMint = await getMinimumBalanceForRentExemptMint(connection);
-  // Estimate ~0.006 SOL for rent + tx fee + SURCHI fee
-  const minRequiredLamports = feeLamports + BigInt(lamportsForMint) + BigInt(2_500_000);
+  // Estimate ~0.006 SOL for rent + tx fee (plus any platform fee if configured)
+  const minRequiredLamports = feeLamports + BigInt(lamportsForMint) + BigInt(3_500_000);
 
   if (BigInt(balanceLamports) < minRequiredLamports) {
     const currentSol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
     const requiredSol = (Number(minRequiredLamports) / LAMPORTS_PER_SOL).toFixed(4);
     throw new Error(
-      `Insufficient SOL balance. Your wallet has ${currentSol} SOL, You need ${requiredSol} SOL to create token.`
+      `Insufficient SOL balance. Your wallet has ${currentSol} SOL. You need ~${requiredSol} SOL to cover Solana blockchain token creation fees (rent-exemption and network fee).`
     );
   }
 
@@ -258,19 +257,22 @@ export async function executeRealSplTokenCreation(
     TOKEN_PROGRAM_ID
   );
 
-  // Instruction 5: SURCHI Fixed Service Fee Transfer (0.1 SOL)
-  const feeTransferIx = SystemProgram.transfer({
-    fromPubkey: wallet.publicKey,
-    toPubkey: feeWalletPubkey,
-    lamports: Number(feeLamports),
-  });
-
   const transaction = new Transaction();
   transaction.add(createMintAccountIx);
   transaction.add(initMintIx);
   transaction.add(createAtaIx);
   transaction.add(mintToIx);
-  transaction.add(feeTransferIx);
+
+  // Platform fee transfer instruction: only add if platform fee is configured > 0
+  if (feeLamports > 0n && feeWalletAddress) {
+    const feeWalletPubkey = new PublicKey(feeWalletAddress);
+    const feeTransferIx = SystemProgram.transfer({
+      fromPubkey: wallet.publicKey,
+      toPubkey: feeWalletPubkey,
+      lamports: Number(feeLamports),
+    });
+    transaction.add(feeTransferIx);
+  }
 
   // Optional: Metaplex Metadata Instruction
   if (metadataUri && metadataUri.trim().length > 0) {
@@ -364,7 +366,7 @@ export async function executeRealSplTokenCreation(
   }
 
   // 7. Verify on-chain existence
-  onStepChange('verifying_on_chain', 'Verifying mint, supply, and 0.1 SOL fee on Solana ledger...');
+  onStepChange('verifying_on_chain', 'Verifying mint account and token supply on Solana ledger...');
 
   return {
     mintAddress: mintPublicKey.toBase58(),

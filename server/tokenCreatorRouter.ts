@@ -26,15 +26,15 @@ if (!fs.existsSync(HISTORY_FILE)) {
 
 /**
  * Authoritative SURCHI fee configuration
- * Defaults to 0.2 SOL and official SURCHI fee wallet
+ * Platform fee is 0 SOL (no platform fee charged; only standard Solana blockchain network/rent fees apply)
  */
-const SURCHI_DEFAULT_FEE_SOL = 0.2;
+const SURCHI_DEFAULT_FEE_SOL = 0;
 const SURCHI_DEFAULT_FEE_WALLET = '7KiihM84H4T9gCLD61HpcRGtSapk9N2H3QAsn9A5y9Ng';
 
 export function getFeeConfig() {
   const envFee = process.env.SURCHI_TOKEN_CREATION_FEE;
-  const parsedFee = envFee ? parseFloat(envFee) : SURCHI_DEFAULT_FEE_SOL;
-  const feeSol = isNaN(parsedFee) || parsedFee <= 0 ? SURCHI_DEFAULT_FEE_SOL : parsedFee;
+  const parsedFee = envFee !== undefined ? parseFloat(envFee) : SURCHI_DEFAULT_FEE_SOL;
+  const feeSol = isNaN(parsedFee) || parsedFee < 0 ? 0 : parsedFee;
   const feeWallet = (process.env.SURCHI_FEE_WALLET || SURCHI_DEFAULT_FEE_WALLET).trim();
   const defaultNetwork: SolanaNetwork = 
     (process.env.SOLANA_NETWORK as SolanaNetwork) === 'devnet' ? 'devnet' : 'mainnet-beta';
@@ -360,46 +360,48 @@ router.post('/api/token-creator/verify', async (req: Request, res: Response) => 
       });
     }
 
-    // 2. Verify that 0.2 SOL reached the SURCHI fee wallet
-    let feeTransferred = false;
-    let feeReceivedLamports = 0;
-
-    // Check preBalances and postBalances for the fee wallet
+    // Extract account keys from transaction message
     const accountKeys = tx.transaction.message.staticAccountKeys 
       ? tx.transaction.message.staticAccountKeys.map((k: any) => k.toBase58 ? k.toBase58() : k.toString())
       : (tx.transaction.message.accountKeys || []).map((k: any) => k.toBase58 ? k.toBase58() : k.toString());
 
-    const feeWalletIndex = accountKeys.indexOf(verifiedFeeWallet);
-    const expectedLamports = Math.round(verifiedFeeSol * LAMPORTS_PER_SOL);
+    // 2. Verify platform fee transfer (only if platform fee is configured > 0)
+    if (verifiedFeeSol > 0) {
+      let feeTransferred = false;
+      let feeReceivedLamports = 0;
 
-    if (feeWalletIndex !== -1 && tx.meta?.preBalances && tx.meta?.postBalances) {
-      const pre = tx.meta.preBalances[feeWalletIndex];
-      const post = tx.meta.postBalances[feeWalletIndex];
-      feeReceivedLamports = post - pre;
-      if (feeReceivedLamports >= expectedLamports) {
-        feeTransferred = true;
+      const feeWalletIndex = accountKeys.indexOf(verifiedFeeWallet);
+      const expectedLamports = Math.round(verifiedFeeSol * LAMPORTS_PER_SOL);
+
+      if (feeWalletIndex !== -1 && tx.meta?.preBalances && tx.meta?.postBalances) {
+        const pre = tx.meta.preBalances[feeWalletIndex];
+        const post = tx.meta.postBalances[feeWalletIndex];
+        feeReceivedLamports = post - pre;
+        if (feeReceivedLamports >= expectedLamports) {
+          feeTransferred = true;
+        }
       }
-    }
 
-    // If pre/post balance difference was within tolerance or if instruction transfer occurred
-    if (!feeTransferred) {
-      // Check instruction transfer in innerInstructions or logMessages
-      const logs = tx.meta?.logMessages || [];
-      const hasSystemTransfer = logs.some((l: string) => 
-        l.includes('Program 11111111111111111111111111111111 success') ||
-        l.includes('Transfer:')
-      );
-      if (feeWalletIndex !== -1 && hasSystemTransfer && feeReceivedLamports >= expectedLamports * 0.99) {
-        feeTransferred = true;
+      // If pre/post balance difference was within tolerance or if instruction transfer occurred
+      if (!feeTransferred) {
+        // Check instruction transfer in innerInstructions or logMessages
+        const logs = tx.meta?.logMessages || [];
+        const hasSystemTransfer = logs.some((l: string) => 
+          l.includes('Program 11111111111111111111111111111111 success') ||
+          l.includes('Transfer:')
+        );
+        if (feeWalletIndex !== -1 && hasSystemTransfer && feeReceivedLamports >= expectedLamports * 0.99) {
+          feeTransferred = true;
+        }
       }
-    }
 
-    if (!feeTransferred) {
-      console.warn(`[On-Chain Verification] Fee verification warning: received ${feeReceivedLamports} lamports (expected ${expectedLamports}).`);
-      return res.status(400).json({
-        verified: false,
-        error: `Verification failed: 0.2 SOL creation fee transfer to ${verifiedFeeWallet} was not detected on-chain.`,
-      });
+      if (!feeTransferred) {
+        console.warn(`[On-Chain Verification] Fee verification warning: received ${feeReceivedLamports} lamports (expected ${expectedLamports}).`);
+        return res.status(400).json({
+          verified: false,
+          error: `Verification failed: creation fee transfer to ${verifiedFeeWallet} was not detected on-chain.`,
+        });
+      }
     }
 
     // 3. Verify that the Mint Account exists on-chain and is owned by SPL Token Program
@@ -445,7 +447,7 @@ router.post('/api/token-creator/verify', async (req: Request, res: Response) => 
       mintAddress,
       txSignature,
       metadataUri: metadataUri || `${baseUrl}/api/token-creator/metadata/${mintAddress}`,
-      creationFee: `${verifiedFeeSol} SOL`,
+      creationFee: verifiedFeeSol > 0 ? `${verifiedFeeSol} SOL` : '~0.006 SOL (Solana Network Fee)',
       feeWallet: verifiedFeeWallet,
       timestamp: Date.now(),
       network: targetNetwork,
