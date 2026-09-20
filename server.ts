@@ -1660,7 +1660,7 @@ const tokens: Token[] = [
   },
   {
     address: '0x6982508145454ce325ddbe47a25d4ec3d2311933',
-    pairAddress: '0x119149015c7a597a7e5b22b17316a5d4d3c3453b',
+    pairAddress: '0xa43fe16908251ee70ef74718545e4fe6c5ccec9f',
     name: 'Pepe',
     symbol: 'PEPE',
     chain: 'Ethereum',
@@ -1796,7 +1796,7 @@ const tokens: Token[] = [
   },
   {
     address: '0x532f27101965dd16442e59d40670faf5ebb142e4',
-    pairAddress: '0x0d3e5a5101965dd16442e59d40670faf5ebb142e4',
+    pairAddress: '0x4e829F8A5213c42535AB84AA40BD4aDCCE9cBa02',
     name: 'Brett',
     symbol: 'BRETT',
     chain: 'Base',
@@ -1823,7 +1823,7 @@ const tokens: Token[] = [
   },
   {
     address: '0x4ed4e862860bed51a9570b96d89af5e1b0efefed',
-    pairAddress: '0xc36442b4a452285a6db4d6e902b740332881a5f3',
+    pairAddress: '0xc9034c3e7fde580f4237d6e6d3ce082729938096',
     name: 'Degen Token',
     symbol: 'DEGEN',
     chain: 'Base',
@@ -2804,6 +2804,9 @@ async function executeFetchTokensForChain(chainName: string): Promise<Token[]> {
     if (pair && pair.baseToken && pair.chainId) {
       try {
         const mapped = mapDexPairToToken(pair);
+        if (!mapped.price || isNaN(mapped.price) || mapped.price <= 0) {
+          return; // Strictly ignore any pairs without valid live market price
+        }
         const pairChainLower = mapped.chain.toLowerCase();
         const targetChainLower = chainLower === 'bnb chain' ? 'bnb chain' : chainLower;
 
@@ -2940,6 +2943,9 @@ async function refreshGlobalScreenerPool(): Promise<Token[]> {
       if (pair && pair.baseToken && pair.chainId) {
         try {
           const mapped = mapDexPairToToken(pair);
+          if (!mapped.price || isNaN(mapped.price) || mapped.price <= 0) {
+            return; // Skip tokens without valid live price
+          }
           // Preserve promoted flag from our default core token set if address matches
           const defaultEquiv = tokens.find(t => t.address.toLowerCase() === mapped.address.toLowerCase());
           if (defaultEquiv) {
@@ -3113,7 +3119,11 @@ app.get('/api/tokens', async (req, res) => {
     } else {
       // Fetch entire pool of active tokens for the specific requested chain!
       const targetChain = (chain as string) || 'All';
-      filtered = await fetchTokensForChain(targetChain);
+      if (targetChain === 'All') {
+        filtered = await refreshGlobalScreenerPool();
+      } else {
+        filtered = await fetchTokensForChain(targetChain);
+      }
     }
 
     // Filter by blockchain category
@@ -3164,6 +3174,15 @@ app.get('/api/tokens', async (req, res) => {
       filtered.sort((a, b) => (a.tokenAgeDays || 0) - (b.tokenAgeDays || 0));
     }
 
+    // Strictly guarantee NO placeholder prices (exclude any with <= 0, NaN, or missing price)
+    filtered = filtered.filter(t => 
+      t && 
+      t.address && 
+      typeof t.price === 'number' && 
+      !isNaN(t.price) && 
+      t.price > 0
+    );
+
     console.log(`[DEXPulse Diagnostic Route] GET /api/tokens responding with list of ${filtered.length} tokens.`);
     res.json(filtered);
   } catch (err: any) {
@@ -3175,11 +3194,12 @@ app.get('/api/tokens', async (req, res) => {
         if (chainLower === 'all') return true;
         const c = t.chain.toLowerCase();
         return c === chainLower || (chainLower === 'bnb chain' && (c === 'bnb chain' || c === 'bsc'));
-      });
+      }).filter(t => t && t.address && typeof t.price === 'number' && !isNaN(t.price) && t.price > 0);
       res.json(fallback);
     } catch (fallbackErr: any) {
       console.error('[DEXPulse] Serious double-error in /api/tokens, returning base token list:', fallbackErr);
-      res.json(tokens);
+      const safeTokens = tokens.filter(t => t && t.address && typeof t.price === 'number' && !isNaN(t.price) && t.price > 0);
+      res.json(safeTokens);
     }
   }
 });
@@ -3970,12 +3990,13 @@ app.get('/api/tokens/:address/pools', async (req, res) => {
 
 
 
-// Candlestick retrieval based on real on-chain GeckoTerminal OHLCV
+// Candlestick retrieval based on resilient multi-tier market data service
 app.get('/api/tokens/:address/candles', async (req, res) => {
   try {
     const addressParam = req.params.address.toLowerCase();
     const timeframe = (req.query.timeframe as string) || '1h';
-    const candles = await marketDataService.getCandles(addressParam, timeframe);
+    const localToken = tokens.find(t => t.address.toLowerCase() === addressParam || (t.pairAddress && t.pairAddress.toLowerCase() === addressParam));
+    const candles = await marketDataService.getCandles(addressParam, timeframe, localToken);
     res.json(candles);
   } catch (err: any) {
     console.error(`[API] Error in GET /api/tokens/:address/candles for ${req.params.address}:`, err);
@@ -3988,7 +4009,8 @@ app.get('/api/tokens/:address/chart', async (req, res) => {
   try {
     const addressParam = req.params.address.toLowerCase();
     const timeframe = (req.query.timeframe as string) || '1h';
-    const candles = await marketDataService.getCandles(addressParam, timeframe);
+    const localToken = tokens.find(t => t.address.toLowerCase() === addressParam || (t.pairAddress && t.pairAddress.toLowerCase() === addressParam));
+    const candles = await marketDataService.getCandles(addressParam, timeframe, localToken);
     res.json(candles);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Internal Server Error' });

@@ -43,6 +43,7 @@ import AppFooter from './components/AppFooter';
 import TokenCreatorView from './components/TokenCreatorView';
 import PrivacyPolicyView from './components/PrivacyPolicyView';
 import WalletModal from './components/WalletModal';
+import { screenerStore } from './utils/screenerStore';
 import SplashScreen from './components/SplashScreen';
 import { useSolanaWallet } from './context/SolanaWalletContext';
 import { Token } from './types';
@@ -118,6 +119,9 @@ export default function App() {
   };
 
   const navigateToToken = (address: string) => {
+    if (activeView === 'screener' && mainRef.current) {
+      screenerStore.setScrollTop(mainRef.current.scrollTop);
+    }
     setSelectedTokenAddress(address);
     setActiveView('details');
   };
@@ -639,18 +643,33 @@ export default function App() {
             />
           )}
 
-          {activeView === 'screener' && (
+          {/* Persistent Screener View: kept mounted to preserve exact token list, live prices, scroll position, and pagination */}
+          <div 
+            style={{ display: activeView === 'screener' ? 'block' : 'none' }}
+            aria-hidden={activeView !== 'screener'}
+            className={activeView === 'screener' ? 'block' : 'hidden'}
+          >
             <ScreenerView 
               onSelectToken={navigateToToken} 
               initialQuery={searchQuery} 
               onClose={() => setActiveView('dashboard')}
+              scrollContainerRef={mainRef}
+              isActive={activeView === 'screener'}
             />
-          )}
+          </div>
 
           {activeView === 'details' && selectedTokenAddress && (
             <PairDetailsView 
               tokenAddress={selectedTokenAddress} 
-              onBack={() => { setSelectedTokenAddress(null); setActiveView('screener'); }}
+              onBack={() => { 
+                setSelectedTokenAddress(null); 
+                setActiveView('screener'); 
+                requestAnimationFrame(() => {
+                  if (mainRef.current) {
+                    mainRef.current.scrollTop = screenerStore.getScrollTop();
+                  }
+                });
+              }}
             />
           )}
 

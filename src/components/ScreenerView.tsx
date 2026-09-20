@@ -1,35 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, SlidersHorizontal, RefreshCw, AlertTriangle, ShieldCheck, ChevronDown, Check, X } from 'lucide-react';
+import { Search, SlidersHorizontal, AlertTriangle, ShieldCheck, ChevronDown, Check, X, ArrowDown } from 'lucide-react';
 import { Token, Chain } from '../types';
 import TokenIcon from './TokenIcon';
 import ChainIcon from './ChainIcon';
-import LivePriceTicker from './LivePriceTicker';
 import DexTradeButtons from './DexTradeButtons';
 import { useLivePrice, useLivePriceContext } from './LivePriceContext';
-import { fetchWithTimeoutAndRetry } from '../utils/api';
+import { screenerStore, ScreenerSort } from '../utils/screenerStore';
 
 interface ScreenerViewProps {
   onSelectToken: (tokenAddress: string) => void;
   initialQuery?: string;
   onClose?: () => void;
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  isActive?: boolean;
 }
 
 const ALL_CHAINS: (Chain | 'All')[] = ['All', 'Ethereum', 'Solana', 'BNB Chain', 'Base', 'Arbitrum', 'Avalanche'];
 
-export default function ScreenerView({ onSelectToken, initialQuery, onClose }: ScreenerViewProps) {
-  const [tokens, setTokens] = useState<Token[]>([]);
-  const [search, setSearch] = useState(initialQuery || '');
-  const [selectedChain, setSelectedChain] = useState<Chain | 'All'>('All');
-  const [sortBy, setSortBy] = useState<'trending' | 'gainers' | 'losers' | 'volume' | 'liquidity' | 'new'>('trending');
-  const [loading, setLoading] = useState(true);
+export default function ScreenerView({ 
+  onSelectToken, 
+  initialQuery, 
+  onClose,
+  scrollContainerRef,
+  isActive = true 
+}: ScreenerViewProps) {
+  const initialSnapshot = screenerStore.getSnapshot();
+  const [tokens, setTokens] = useState<Token[]>(initialSnapshot.tokens);
+  const [search, setSearch] = useState(initialQuery !== undefined ? initialQuery : initialSnapshot.search);
+  const [selectedChain, setSelectedChain] = useState<Chain | 'All'>(initialSnapshot.selectedChain);
+  const [sortBy, setSortBy] = useState<ScreenerSort>(initialSnapshot.sortBy);
+  const [visibleCount, setVisibleCount] = useState<number>(initialSnapshot.visibleCount || 50);
+  const [loading, setLoading] = useState<boolean>(initialSnapshot.tokens.length === 0);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [chainDropdownOpen, setChainDropdownOpen] = useState(false);
   const chainDropdownRef = useRef<HTMLDivElement>(null);
-  const pageSize = 100;
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { feedState, retryCount } = useLivePriceContext();
 
+  // Close chain dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (chainDropdownRef.current && !chainDropdownRef.current.contains(event.target as Node)) {
@@ -40,70 +49,96 @@ export default function ScreenerView({ onSelectToken, initialQuery, onClose }: S
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isJson = (res: Response) => res.ok && res.headers.get('content-type')?.includes('application/json');
-
-  const fetchTokens = async (showLoading = true) => {
-    if (showLoading) {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      const params = new URLSearchParams();
-      if (selectedChain !== 'All') params.append('chain', selectedChain);
-      if (search) params.append('search', search);
-      params.append('sort', sortBy);
-
-      const res = await fetchWithTimeoutAndRetry(`/api/tokens?${params.toString()}`, {}, 15000, 2);
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        const seen = new Set<string>();
-        const unique = data.filter(t => {
-          const addr = t.address?.toLowerCase();
-          if (!addr) return false;
-          if (seen.has(addr)) return false;
-          seen.add(addr);
-          return true;
-        });
-        setTokens(unique);
-        setError(null);
-      } else if (Array.isArray(data)) {
-        setTokens(data);
-        setError(null);
-      } else {
-        setTokens([]);
-      }
-    } catch (err: any) {
-      console.warn('Notice when syncing screener tokens:', err);
-      // If we already have tokens in state, do not blank out the UI during periodic auto-refresh
-      if (tokens.length === 0) {
-        // Attempt quick resilient fallback to base tokens endpoint
-        try {
-          const fallbackRes = await fetch('/api/tokens');
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            if (Array.isArray(fallbackData) && fallbackData.length > 0) {
-              setTokens(fallbackData);
-              setError(null);
-              return;
-            }
-          }
-        } catch {
-          // ignore fallback error
-        }
-        setError(err.message || 'Unable to fetch live token data — retrying');
-      }
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  };
-
+  // Subscribe to central store updates (silent background merges & price sync)
   useEffect(() => {
-    setCurrentPage(1);
-    fetchTokens(true);
+    const unsubscribe = screenerStore.subscribe(() => {
+      const snap = screenerStore.getSnapshot();
+      setTokens(snap.tokens);
+      setVisibleCount(snap.visibleCount);
+      if (snap.tokens.length > 0) {
+        setLoading(false);
+        setError(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Save container scroll position on scroll
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    const handleScroll = () => {
+      screenerStore.setScrollTop(container.scrollTop);
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [scrollContainerRef]);
+
+  // Restore scroll position whenever this view becomes active or mounts
+  useEffect(() => {
+    if (isActive) {
+      const savedTop = screenerStore.getScrollTop();
+      if (savedTop > 0) {
+        requestAnimationFrame(() => {
+          if (scrollContainerRef?.current) {
+            scrollContainerRef.current.scrollTop = savedTop;
+          }
+        });
+      }
+    }
+  }, [isActive, scrollContainerRef]);
+
+  // Handle token fetching with deduplication, background updates, and zero full-screen flicker
+  useEffect(() => {
+    let isCancelled = false;
+
+    screenerStore.setFilters(selectedChain, search, sortBy);
+
+    const performFetch = async () => {
+      const hasExisting = screenerStore.getTokens().length > 0;
+      if (!hasExisting) {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        const fetched = await screenerStore.fetchTokens({
+          chain: selectedChain,
+          search,
+          sort: sortBy,
+          silent: hasExisting
+        });
+        if (!isCancelled) {
+          setTokens(fetched);
+          setError(null);
+          setLoading(false);
+        }
+      } catch (err: any) {
+        if (!isCancelled) {
+          if (screenerStore.getTokens().length === 0) {
+            setError(err.message || 'Unable to fetch token screener data');
+          }
+          setLoading(false);
+        }
+      }
+    };
+
+    performFetch();
+
+    // Background silent refresh every 25s
     const interval = setInterval(() => {
-      fetchTokens(false);
-    }, 30000); // 30-second background auto-refresh
-    return () => clearInterval(interval);
+      screenerStore.fetchTokens({
+        chain: selectedChain,
+        search,
+        sort: sortBy,
+        silent: true
+      }).catch(() => {});
+    }, 25000);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
   }, [selectedChain, search, sortBy]);
 
   // Handle live searches
@@ -111,11 +146,49 @@ export default function ScreenerView({ onSelectToken, initialQuery, onClose }: S
     setSearch(e.target.value);
   };
 
-  const totalTokens = tokens.length;
-  const totalPages = Math.ceil(totalTokens / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, totalTokens);
-  const paginatedTokens = tokens.slice(startIndex, endIndex);
+  const handleSelectToken = (tokenAddress: string) => {
+    if (scrollContainerRef?.current) {
+      screenerStore.setScrollTop(scrollContainerRef.current.scrollTop);
+    }
+    screenerStore.setVisibleCount(visibleCount);
+    onSelectToken(tokenAddress);
+  };
+
+  const handleLoadMore = () => {
+    const next = Math.min(tokens.length, visibleCount + 50);
+    setVisibleCount(next);
+    screenerStore.setVisibleCount(next);
+  };
+
+  // Infinite scroll sentinel observer to automatically load next batch
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && visibleCount < tokens.length) {
+        const next = Math.min(tokens.length, visibleCount + 50);
+        setVisibleCount(next);
+        screenerStore.setVisibleCount(next);
+      }
+    }, { rootMargin: '300px' });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [visibleCount, tokens.length]);
+
+  // Strictly filter out any token that lacks a positive live price
+  const validLiveTokens = tokens.filter(t => 
+    t && 
+    t.address && 
+    typeof t.price === 'number' && 
+    !isNaN(t.price) && 
+    t.price > 0
+  );
+
+  const displayedTokens = validLiveTokens.slice(0, visibleCount);
+  const totalTokens = validLiveTokens.length;
+  const displayedCount = displayedTokens.length;
 
   return (
     <div className="space-y-6">
@@ -294,13 +367,13 @@ export default function ScreenerView({ onSelectToken, initialQuery, onClose }: S
                 </tr>
               </thead>
               <tbody className="divide-y divide-elegant-border/40">
-                {paginatedTokens.map((tok, idx) => (
+                {displayedTokens.map((tok, idx) => (
                   <ScreenerRow
-                    key={`${tok.address}-${idx}`}
+                    key={`${tok.address}-${tok.chain}`}
                     tok={tok}
                     idx={idx}
-                    rowNumber={startIndex + idx + 1}
-                    onSelectToken={onSelectToken}
+                    rowNumber={idx + 1}
+                    onSelectToken={handleSelectToken}
                   />
                 ))}
               </tbody>
@@ -309,33 +382,40 @@ export default function ScreenerView({ onSelectToken, initialQuery, onClose }: S
         )}
       </div>
 
-      {/* Pagination Controls */}
-      {!loading && !error && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all border border-elegant-border cursor-pointer select-none ${
-              currentPage === 1
-                ? 'bg-elegant-bg/40 text-elegant-text-secondary/50 border-elegant-border/50 cursor-not-allowed'
-                : 'bg-elegant-surface text-white hover:bg-elegant-surface-hover active:scale-95'
-            }`}
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all border border-elegant-border cursor-pointer select-none ${
-              currentPage === totalPages
-                ? 'bg-elegant-bg/40 text-elegant-text-secondary/50 border-elegant-border/50 cursor-not-allowed'
-                : 'bg-elegant-surface text-white hover:bg-elegant-surface-hover active:scale-95'
-            }`}
-          >
-            Next
-          </button>
+      {/* Dynamic Batch Pagination & Cumulative Load More Controls */}
+      {!loading && !error && displayedTokens.length > 0 && (
+        <div className="flex flex-col items-center justify-center gap-3 pt-2 pb-6">
+          {/* Status Bar: "Showing 1–50 of 108 tokens" / "Showing 1–100 of 108 tokens" */}
+          <div className="flex items-center gap-2 text-xs text-elegant-text-secondary font-mono">
+            <span>Showing</span>
+            <span className="text-white font-bold px-2 py-0.5 bg-elegant-surface border border-elegant-border rounded-md">
+              1–{displayedCount}
+            </span>
+            <span>of</span>
+            <span className="text-white font-bold">{totalTokens}</span>
+            <span>verified live tokens</span>
+          </div>
+
+          {/* Load Next 50 Tokens button if more available */}
+          {displayedCount < totalTokens ? (
+            <div className="flex flex-col items-center gap-2 mt-1">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                className="flex items-center gap-2 px-6 py-2.5 bg-elegant-surface hover:bg-elegant-surface-hover border border-elegant-border hover:border-elegant-gold/50 text-white hover:text-elegant-gold text-xs font-semibold rounded-xl transition-all active:scale-95 shadow-md cursor-pointer"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+                <span>Load Next 50 Tokens ({totalTokens - displayedCount} remaining)</span>
+              </button>
+
+              {/* Infinite scroll sentinel trigger element */}
+              <div ref={sentinelRef} className="h-4 w-full" />
+            </div>
+          ) : (
+            <div className="text-[11px] text-zinc-500 font-mono italic mt-1">
+              All {totalTokens} active on-chain pairs displayed
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -361,9 +441,14 @@ function ScreenerRow({ tok, idx, rowNumber, onSelectToken }: ScreenerRowProps) {
     rowRef
   );
 
-  const formattedPrice = price < 0.01
-    ? price.toFixed(8)
-    : price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  // Strictly guaranteed real live price (Never show 0, $0.00, N/A, or fake prices)
+  const safePrice = (typeof price === 'number' && !isNaN(price) && price > 0)
+    ? price
+    : (typeof tok.price === 'number' && !isNaN(tok.price) && tok.price > 0 ? tok.price : 0.0001);
+
+  const formattedPrice = safePrice < 0.01
+    ? safePrice.toFixed(8)
+    : safePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
   const isPositive1h = tok.priceChange1h >= 0;
   const isPositive24h = priceChange24h >= 0;

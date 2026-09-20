@@ -1099,6 +1099,8 @@ export default function PairDetailsView({ tokenAddress, onBack }: PairDetailsVie
             tokenSymbol={safeToken.symbol || 'TOKEN'}
             tokenLogoUrl={safeToken.logo || ''}
             tokenChain={safeToken.chain || ''}
+            pairAddress={safeToken.pairAddress}
+            dexName={safeToken.dexName}
             lastTrade={lastTrade}
             wsConnected={wsConnected}
           />

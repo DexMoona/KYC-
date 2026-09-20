@@ -11,7 +11,8 @@ import {
 import { 
   Camera, 
   Maximize2,
-  ExternalLink
+  ExternalLink,
+  Activity
 } from 'lucide-react';
 import { Candle } from '../types';
 import { formatCompressedPrice } from '../utils/formatters';
@@ -22,6 +23,8 @@ interface TradingViewChartProps {
   tokenSymbol: string;
   tokenLogoUrl?: string;
   tokenChain?: string;
+  pairAddress?: string;
+  dexName?: string;
   lastTrade?: { price: number; volume: number; timestamp: number } | null;
   wsConnected?: boolean;
 }
@@ -125,6 +128,8 @@ export default function TradingViewChart({
   tokenPrice,
   tokenSymbol,
   tokenChain,
+  pairAddress,
+  dexName: customDexName,
   lastTrade,
   wsConnected = false
 }: TradingViewChartProps) {
@@ -939,7 +944,7 @@ export default function TradingViewChart({
 
   const isSolana = !tokenAddress.startsWith('0x');
   const chainSlug = getChainSlug(tokenChain || (isSolana ? 'solana' : 'ethereum'));
-  const dexName = isSolana ? 'Raydium' : 'Uniswap v3';
+  const dexName = customDexName || (isSolana ? 'Raydium' : 'Uniswap v3');
   const displaySymbol = tokenSymbol.toUpperCase().includes('/') ? tokenSymbol.toUpperCase() : `${tokenSymbol.toUpperCase()}/USD`;
 
   return (
@@ -1117,7 +1122,7 @@ export default function TradingViewChart({
       {chartMode === 'embed' ? (
         <div className="relative w-full h-[520px] sm:h-[560px] bg-elegant-surface overflow-hidden">
           <iframe
-            src={`https://dexscreener.com/${chainSlug}/${tokenAddress}?embed=1&theme=dark&trades=0&info=0`}
+            src={`https://dexscreener.com/${chainSlug}/${pairAddress || tokenAddress}?embed=1&theme=dark&trades=0&info=0`}
             title={`${tokenSymbol} DexScreener Embed Chart`}
             className="w-full h-full border-0"
             allow="clipboard-write"
@@ -1180,6 +1185,36 @@ export default function TradingViewChart({
               <div className="flex items-center space-x-2 text-xs text-[#089981] font-mono">
                 <div className="w-2 h-2 rounded-full bg-[#089981] animate-ping" />
                 <span>Loading DexScreener Chart...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Empty / Inactive Fallback Overlay */}
+          {!loading && candles.length === 0 && (
+            <div className="absolute inset-0 z-20 bg-elegant-surface/90 flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3">
+                <Activity className="w-5 h-5 text-amber-400 animate-pulse" />
+              </div>
+              <p className="text-sm font-semibold text-white mb-1">On-Chain Candlesticks Syncing</p>
+              <p className="text-xs text-zinc-400 max-w-sm mb-4">
+                Real-time on-chain history is syncing from DEX pools. You can switch to the interactive DexScreener embed anytime.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setChartMode('embed')}
+                  className="px-3.5 py-1.5 bg-[#00e5ff] text-black text-xs font-bold rounded-lg hover:bg-[#00e5ff]/90 transition-colors flex items-center gap-1.5 shadow-md shadow-[#00e5ff]/20 cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Switch to DexScreener Live Chart</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fetchCandles(false)}
+                  className="px-3.5 py-1.5 bg-[#2a2e39] hover:bg-[#363a45] text-zinc-200 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                >
+                  Retry Sync
+                </button>
               </div>
             </div>
           )}
