@@ -810,18 +810,6 @@ export default function PairDetailsView({ tokenAddress, onBack }: PairDetailsVie
     }
   }, [activeTab, token, aiReport]);
 
-  const executeSimulatedTrade = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-    setTxPending(true);
-    setTradeSuccess(null);
-
-    setTimeout(() => {
-      setTxPending(false);
-      setTradeSuccess(`Successfully executed ${tradeType.toUpperCase()} swap for ${payAmount} ${tradeType === 'buy' ? getNativeSymbol(token.chain) : token.symbol}! Dynamic slip: 0.12%. Route: Aerodrome V3.`);
-    }, 1500);
-  };
-
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleOpenRouting();

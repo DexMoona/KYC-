@@ -8,6 +8,10 @@ import { createServer as createHttpServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { Chain, Token, Transaction, Candle, WhaleWallet, PriceAlert, NewsItem, LaunchItem, ChainStats, SecurityAudit, TokenHolder, WalletClassification, SmartTransactionType, SmartWhaleTransaction, SmartWhaleProfile } from './src/types';
 import tokenCreatorRouter from './server/tokenCreatorRouter';
+import { marketDataService } from './server/services/marketData.service';
+import { solanaDataService } from './server/services/solanaData.service';
+import { aiService } from './server/services/ai.service';
+import { monitoringService } from './server/services/monitoring.service';
 
 dotenv.config();
 
@@ -2155,125 +2159,9 @@ function getPricePrecision(price: number): number {
   return Math.max(8, leadingZeros + 4);
 }
 
-function prepopulateTokenTrades() {
-  const nowSecs = Math.floor(Date.now() / 1000);
-  
-  tokens.forEach(token => {
-    const addr = token.address.toLowerCase();
-    const trades: OnChainTrade[] = [];
-    let currentPrice = token.price;
-    const precision = getPricePrecision(token.price);
-    const minPriceLimit = Math.max(1e-15, token.price * 0.001);
-    
-    // Create 1200 historical trades extending back 20 days
-    for (let i = 0; i <= 1200; i++) {
-      // mix in a higher density near the end for short timeframes (e.g. 1s, 5s)
-      const isRecent = i < 200;
-      const timeOffset = isRecent 
-        ? i * 20 // trade every 20 seconds for the last 1.1 hours
-        : 200 * 20 + (i - 200) * 1400; // spread out historical ones
-
-      const timestamp = nowSecs - timeOffset;
-      
-      if (i > 0) {
-        const volatility = (Math.random() * 0.038) - 0.0185; // slightly upward bias
-        currentPrice = Math.max(minPriceLimit, currentPrice * (1 - volatility));
-      }
-      
-      const amountUSD = Math.pow(10, 1.5 + Math.random() * 3.2); // $30 to $50,000
-      const type: 'buy' | 'sell' = Math.random() > 0.48 ? 'buy' : 'sell';
-      
-      trades.push({
-        price: Number(currentPrice.toFixed(precision)),
-        amountUSD: Number(amountUSD.toFixed(2)),
-        timestamp,
-        type
-      });
-    }
-    
-    trades.sort((a, b) => a.timestamp - b.timestamp);
-    tokenTrades[addr] = trades;
-    
-    // align final token price
-    token.price = trades[trades.length - 1].price;
-  });
-}
-
-prepopulateTokenTrades();
-
-// Real-time chart price tick loop
-setInterval(() => {
-  const token = tokens[Math.floor(Math.random() * tokens.length)];
-  const isBuy = Math.random() > 0.48;
-  const tradeVol = Math.pow(10, 2 + Math.random() * 3.5);
-  
-  const addrLower = token.address.toLowerCase();
-  if (!tokenTrades[addrLower]) {
-    tokenTrades[addrLower] = [];
-  }
-  tokenTrades[addrLower].push({
-    price: token.price,
-    amountUSD: Number(tradeVol.toFixed(2)),
-    timestamp: Math.floor(Date.now() / 1000),
-    type: isBuy ? 'buy' : 'sell'
-  });
-  if (tokenTrades[addrLower].length > 5000) {
-    tokenTrades[addrLower].shift();
-  }
-
-  // 3. Update whale activity
-  const luckyWhale = whaleWallets[Math.floor(Math.random() * whaleWallets.length)];
-  luckyWhale.tradesCount24h += 1;
-  luckyWhale.pnlUSD += isBuy ? (tradeVol * 0.1) : -(tradeVol * 0.08);
-  luckyWhale.recentTrades.unshift({
-    timestamp: new Date().toISOString(),
-    tokenSymbol: token.symbol,
-    tokenAddress: token.address,
-    chain: token.chain,
-    type: isBuy ? 'buy' : 'sell',
-    amountUSD: Number(tradeVol.toFixed(2)),
-    pnl: isBuy ? Number((tradeVol * 0.1).toFixed(2)) : undefined
-  });
-  if (luckyWhale.recentTrades.length > 20) luckyWhale.recentTrades.pop();
-
-  // 4. Update Chain Statistics
-  const cStat = chainStats.find(c => c.chain === token.chain);
-  if (cStat) {
-    cStat.volume24h += tradeVol;
-    cStat.txsCount24h += 1;
-  }
-  globalVolume24h += tradeVol;
-
-  // 5. Evaluate custom user Price Alerts
-  activeAlerts.forEach(alert => {
-    if (!alert.triggered && alert.tokenAddress.toLowerCase() === token.address.toLowerCase()) {
-      let met = false;
-      if (alert.condition === 'above' && token.price >= alert.value) {
-        met = true;
-      } else if (alert.condition === 'below' && token.price <= alert.value) {
-        met = true;
-      }
-
-      if (met) {
-        alert.triggered = true;
-        saveAlertsToDB(activeAlerts);
-        const msg = `🚨 <b>DEXPulse Alert Triggered!</b>\nToken: <b>${alert.tokenSymbol}</b> (${alert.tokenAddress})\nCurrent Price: <b>$${token.price}</b>\nCondition: Price went <b>${alert.condition}</b> threshold <b>$${alert.value}</b>`;
-        
-        dispatchTelegramNotification(msg).then(ok => {
-          if (ok) console.log(`[Alerts Engine] Telegram notification sent for alert ${alert.id}`);
-        });
-
-        dispatchEmailNotification(
-          `🚨 DEXPulse Alert: ${alert.tokenSymbol} Triggered!`,
-          `<p>Your price alert for <strong>${alert.tokenSymbol}</strong> has triggered.</p><p>Current price: <strong>$${token.price}</strong> (Condition: ${alert.condition} threshold of $${alert.value}).</p>`
-        ).then(ok => {
-          if (ok) console.log(`[Alerts Engine] Email notification sent for alert ${alert.id}`);
-        });
-      }
-    }
-  });
-
-}, 3500);
+// Initial sync of live prices on startup
+syncDefaultTokensWithDexScreener().catch(console.error);
+syncNativeTokenPrices().catch(console.error);
 
 // Background job to continuously pull live pricing from DexScreener/CoinGecko and check custom alerts!
 setInterval(async () => {
@@ -4055,298 +3943,54 @@ app.get('/api/tokens/:address/pools', async (req, res) => {
     // Graceful fallback when DexScreener request times out or aborts
   }
 
-  // Fallback to local simulated pools
-  const chainKey = chainName.toLowerCase();
-  const defaultDexes = 
-    chainKey.includes('solana') ? [
-      { name: 'Raydium v2', id: 'raydium' },
-      { name: 'Jupiter Aggregator', id: 'jupiter' }
-    ] : chainKey.includes('base') ? [
-      { name: 'Aerodrome Slip', id: 'aerodrome' },
-      { name: 'Uniswap v3 (Base)', id: 'uniswap' }
-    ] : chainKey.includes('bnb') || chainKey.includes('pancake') ? [
-      { name: 'PancakeSwap v3', id: 'pancakeswap' }
-    ] : chainKey.includes('polygon') ? [
-      { name: 'QuickSwap v3', id: 'quickswap' }
-    ] : chainKey.includes('avalanche') ? [
-      { name: 'Trader Joe', id: 'traderjoe' }
-    ] : chainKey.includes('arbitrum') ? [
-      { name: 'Camelot v3', id: 'camelot' },
-      { name: 'Uniswap v3 (Arbitrum)', id: 'uniswap' }
-    ] : chainKey.includes('sui') ? [
-      { name: 'Cetus Swap', id: 'cetus' }
-    ] : [
-      { name: 'Uniswap v3 (Mainnet)', id: 'uniswap' },
-      { name: 'SushiSwap Routing', id: 'sushiswap' }
-    ];
+  if (localToken && localToken.pairAddress && !localToken.pairAddress.includes('-pair') && !localToken.pairAddress.includes('-pool')) {
+    const chainKey = chainName.toLowerCase();
+    const dexId = (localToken as any).dexId || 'uniswap';
+    const { buyUrl, sellUrl } = getDexUrls(chainKey, dexId, address);
+    return res.json({
+      pools: [{
+        dexName: dexId,
+        dexIcon: getDexLogo(dexId),
+        liquidity: localToken.liquidity || 0,
+        volume24h: localToken.volume24h || 0,
+        pairAddress: localToken.pairAddress,
+        poolAddress: localToken.pairAddress,
+        tradingPair: `${symbol} / USD`,
+        estimatedSlippage: 0.5,
+        verified: (localToken.liquidity || 0) > 1000,
+        buyUrl,
+        sellUrl,
+        chainId: chainKey
+      }]
+    });
+  }
 
-  const fallbackPools = defaultDexes.map((dex, idx) => {
-    const baseLiq = localToken ? localToken.liquidity : 85000;
-    const poolLiq = baseLiq * (idx === 0 ? 0.75 : 0.25);
-    const poolVol = (localToken ? localToken.volume24h : 45000) * (idx === 0 ? 0.8 : 0.2);
-    const { buyUrl, sellUrl } = getDexUrls(chainKey, dex.id, address);
-    
-    return {
-      dexName: dex.name,
-      dexIcon: getDexLogo(dex.name),
-      liquidity: Math.round(poolLiq),
-      volume24h: Math.round(poolVol),
-      pairAddress: localToken ? localToken.pairAddress : '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-      poolAddress: localToken ? localToken.pairAddress : '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-      tradingPair: `${symbol} / ${chainKey.includes('solana') ? 'SOL' : chainKey.includes('sui') ? 'SUI' : 'WETH'}`,
-      estimatedSlippage: idx === 0 ? 0.5 : 1.5,
-      verified: true,
-      buyUrl,
-      sellUrl,
-      chainId: chainKey
-    };
-  });
-
-  res.json({ pools: fallbackPools });
+  res.json({ pools: [] });
 });
 
-function aggregateTradesToCandles(trades: OnChainTrade[], timeframe: string): Candle[] {
-  let step = 300; // default 5m
-  const tf = timeframe; // Keep original case to distinguish 1m from 1M
-  if (tf === '1s') step = 1;
-  else if (tf === '5s') step = 5;
-  else if (tf === '15s') step = 15;
-  else if (tf === '30s') step = 30;
-  else if (tf === '1m') step = 60;
-  else if (tf === '5m') step = 300;
-  else if (tf === '15m') step = 900;
-  else if (tf === '30m') step = 1800;
-  else if (tf === '1h') step = 3600;
-  else if (tf === '4h') step = 14400;
-  else if (tf === '1d') step = 86400;
-  else if (tf === '1w') step = 604800;
-  else if (tf === '1M') step = 2592000;
 
-  if (trades.length === 0) return [];
 
-  // Group trades by step buckets
-  const buckets: Record<number, OnChainTrade[]> = {};
-  trades.forEach(t => {
-    const bucketTime = Math.floor(t.timestamp / step) * step;
-    if (!buckets[bucketTime]) {
-      buckets[bucketTime] = [];
-    }
-    buckets[bucketTime].push(t);
-  });
-
-  const sortedBucketTimes = Object.keys(buckets).map(Number).sort((a, b) => a - b);
-  const candles: Candle[] = [];
-
-  let lastClose = trades[0].price;
-
-  if (sortedBucketTimes.length > 0) {
-    const lastTime = sortedBucketTimes[sortedBucketTimes.length - 1];
-    
-    // Pick active trade buckets or standard continuous timeframe range (up to 120 candles)
-    const maxCandles = 120;
-    const firstTime = Math.max(sortedBucketTimes[0], lastTime - maxCandles * step);
-
-    for (let t = firstTime; t <= lastTime; t += step) {
-      const bucketTrades = buckets[t];
-      if (bucketTrades && bucketTrades.length > 0) {
-        const open = bucketTrades[0].price;
-        const close = bucketTrades[bucketTrades.length - 1].price;
-        let high = -Infinity;
-        let low = Infinity;
-        let volume = 0;
-
-        bucketTrades.forEach(tr => {
-          if (tr.price > high) high = tr.price;
-          if (tr.price < low) low = tr.price;
-          volume += tr.amountUSD;
-        });
-
-        const safeHigh = Math.max(high, open, close);
-        const safeLow = Math.min(low, open, close);
-
-        candles.push({
-          time: t,
-          open,
-          high: safeHigh,
-          low: safeLow,
-          close,
-          volume: Math.round(volume)
-        });
-        lastClose = close;
-      } else {
-        // If there's a gap between buckets, create a realistic candle step
-        const variation = (Math.sin(t / step) * 0.003);
-        const open = lastClose;
-        const close = Math.max(1e-15, lastClose * (1 + variation));
-        const high = Math.max(open, close) * (1 + Math.abs(variation) * 0.5);
-        const low = Math.min(open, close) * (1 - Math.abs(variation) * 0.5);
-        
-        candles.push({
-          time: t,
-          open,
-          high,
-          low,
-          close,
-          volume: Math.round(Math.random() * 500)
-        });
-        lastClose = close;
-      }
-    }
-  }
-
-  return candles;
-}
-
-// Fetch live OHLCV from GeckoTerminal DEX pool
-async function fetchGeckoTerminalOHLCV(network: string, poolAddress: string, timeframe: string): Promise<Candle[] | null> {
-  try {
-    let gtTf = 'day';
-    let aggregate = 1;
-    if (timeframe === '1m') { gtTf = 'minute'; aggregate = 1; }
-    else if (timeframe === '5m') { gtTf = 'minute'; aggregate = 5; }
-    else if (timeframe === '15m') { gtTf = 'minute'; aggregate = 15; }
-    else if (timeframe === '1h') { gtTf = 'hour'; aggregate = 1; }
-    else if (timeframe === '4h') { gtTf = 'hour'; aggregate = 4; }
-    else if (timeframe === '1d') { gtTf = 'day'; aggregate = 1; }
-
-    const url = `https://api.geckoterminal.com/api/v2/networks/${network}/pools/${poolAddress}/ohlcv/${gtTf}?aggregate=${aggregate}&limit=100`;
-    const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } }, 8000);
-    if (res.ok) {
-      const data = await res.json();
-      const ohlcvList = data?.data?.attributes?.ohlcv_list;
-      if (Array.isArray(ohlcvList) && ohlcvList.length > 0) {
-        const parsedCandles: Candle[] = ohlcvList.map((item: any) => {
-          const open = Number(item[1]);
-          const high = Number(item[2]);
-          const low = Number(item[3]);
-          const close = Number(item[4]);
-          return {
-            time: Number(item[0]),
-            open,
-            high: Math.max(high, open, close),
-            low: Math.min(low, open, close),
-            close,
-            volume: Math.round(Number(item[5] || 0))
-          };
-        }).filter(c => !isNaN(c.time) && !isNaN(c.open) && !isNaN(c.close) && c.open > 0 && c.close > 0);
-        
-        parsedCandles.sort((a, b) => a.time - b.time);
-        if (parsedCandles.length > 0) {
-          return parsedCandles;
-        }
-      }
-    }
-  } catch (err) {
-    // fallback gracefully
-  }
-  return null;
-}
-
-// Candlestick generation dynamically based on token price
+// Candlestick retrieval based on real on-chain GeckoTerminal OHLCV
 app.get('/api/tokens/:address/candles', async (req, res) => {
   try {
     const addressParam = req.params.address.toLowerCase();
-    const timeframe = (req.query.timeframe as string) || '1d';
-    
-    // Sync/fetch live token details with DexScreener and CoinGecko fallback
-    let token = await syncTokenLive(addressParam).catch(err => {
-      console.warn(`[Candles API] Live sync failed for token ${addressParam}, using local memory fallback.`, err.message);
-      return null;
-    });
-
-    if (!token) {
-      token = tokens.find(t => t.address.toLowerCase() === addressParam) || null;
-    }
-
-    if (!token) {
-      // Create a deterministic fallback token if it's a valid address format but not pre-seeded
-      token = {
-        address: addressParam,
-        pairAddress: addressParam + '-pair',
-        name: `Token ${addressParam.substring(0, 6)}`,
-        symbol: `TKN-${addressParam.substring(2, 5).toUpperCase()}`,
-        chain: 'Ethereum',
-        price: 1.0,
-        priceChange1h: 0.1,
-        priceChange24h: 1.5,
-        volume24h: 50000,
-        liquidity: 100000,
-        mcap: 1000000,
-        fdv: 1000000,
-        circulatingSupply: 1000000,
-        holderCount: 150,
-        creatorWallet: '0x0000000000000000000000000000000000000000',
-        tokenAgeDays: 10,
-        dexName: 'Uniswap v3',
-        verified: true,
-        promoted: false,
-        securityScore: 85,
-        rugRiskScore: 'Low',
-        socials: {},
-        topHolders: []
-      };
-      tokens.push(token);
-    }
-
-    // 1. Try real live GeckoTerminal DEX OHLCV first if pool address is available
-    if (token.pairAddress && !token.pairAddress.endsWith('-pair')) {
-      const net = chainToGeckoNetwork[token.chain.toLowerCase()] || (token.chain.toLowerCase() === 'solana' ? 'solana' : 'eth');
-      const liveGtCandles = await fetchGeckoTerminalOHLCV(net, token.pairAddress, timeframe);
-      if (liveGtCandles && liveGtCandles.length > 0) {
-        // Ensure the last candle reflects the latest known price
-        if (token.price && token.price > 0) {
-          const lastC = liveGtCandles[liveGtCandles.length - 1];
-          lastC.close = token.price;
-          lastC.high = Math.max(lastC.high, lastC.open, token.price);
-          lastC.low = Math.min(lastC.low, lastC.open, token.price);
-        }
-        return res.json(liveGtCandles);
-      }
-    }
-
-    const addrLower = token.address.toLowerCase();
-    
-    // 2. Lazily populate on-chain simulated trades if not present
-    if (!tokenTrades[addrLower]) {
-      const trades: OnChainTrade[] = [];
-      let currentPrice = token.price;
-      const precision = getPricePrecision(token.price);
-      const minPriceLimit = Math.max(1e-15, token.price * 0.001);
-      const nowSecs = Math.floor(Date.now() / 1000);
-      for (let i = 0; i <= 3000; i++) {
-        const isRecent = i < 500;
-        const timeOffset = isRecent ? i * 60 : 500 * 60 + (i - 500) * 1800;
-        const timestamp = nowSecs - timeOffset;
-        
-        if (i > 0) {
-          const volatility = (Math.random() * 0.015) - 0.0072;
-          currentPrice = Math.max(minPriceLimit, currentPrice * (1 - volatility));
-        }
-        
-        const amountUSD = Math.pow(10, 1.5 + Math.random() * 3.2);
-        const type: 'buy' | 'sell' = Math.random() > 0.48 ? 'buy' : 'sell';
-        trades.push({
-          price: Number(currentPrice.toFixed(precision)),
-          amountUSD: Number(amountUSD.toFixed(2)),
-          timestamp,
-          type
-        });
-      }
-      trades.sort((a, b) => a.timestamp - b.timestamp);
-      tokenTrades[addrLower] = trades;
-    }
-
-    const candles = aggregateTradesToCandles(tokenTrades[addrLower], timeframe);
-    // Ensure the last candle has close equal to the authoritative token price
-    if (candles.length > 0 && token.price && token.price > 0) {
-      const lastC = candles[candles.length - 1];
-      lastC.close = token.price;
-      lastC.high = Math.max(lastC.high, lastC.open, token.price);
-      lastC.low = Math.min(lastC.low, lastC.open, token.price);
-    }
+    const timeframe = (req.query.timeframe as string) || '1h';
+    const candles = await marketDataService.getCandles(addressParam, timeframe);
     res.json(candles);
   } catch (err: any) {
     console.error(`[API] Error in GET /api/tokens/:address/candles for ${req.params.address}:`, err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+  }
+});
+
+// Modernized Chart Alias
+app.get('/api/tokens/:address/chart', async (req, res) => {
+  try {
+    const addressParam = req.params.address.toLowerCase();
+    const timeframe = (req.query.timeframe as string) || '1h';
+    const candles = await marketDataService.getCandles(addressParam, timeframe);
+    res.json(candles);
+  } catch (err: any) {
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
 });
@@ -4841,191 +4485,12 @@ const POPULAR_SOLANA_MONITORED_TOKENS = [
 ];
 
 async function generateSolanaWhaleActivity(): Promise<SmartTrackerCache> {
-  const now = Date.now();
-  const transactions: SmartWhaleTransaction[] = [];
-  const walletMap = new Map<string, SmartWhaleProfile>();
-
-  for (const w of SOLANA_KNOWN_WALLETS) {
-    walletMap.set(w.address, {
-      address: w.address,
-      label: w.label,
-      classification: w.classification,
-      portfolioValueUSD: Math.round(w.solBalance * 185.50 + Math.random() * 500000),
-      solBalance: w.solBalance,
-      winRate: w.winRate,
-      netProfitUSD: w.netProfitUSD,
-      totalTrades24h: Math.floor(Math.random() * 40) + 10,
-      walletAgeDays: w.walletAgeDays,
-      mostTradedTokens: [
-        { symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', volumeUSD: Math.round(Math.random() * 2000000 + 500000), tradesCount: 18 },
-        { symbol: 'JUP', name: 'Jupiter', address: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', volumeUSD: Math.round(Math.random() * 1500000 + 200000), tradesCount: 12 },
-        { symbol: 'WIF', name: 'dogwifhat', address: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcJM', volumeUSD: Math.round(Math.random() * 800000 + 100000), tradesCount: 9 }
-      ],
-      holdings: [
-        { symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', balance: w.solBalance, valueUSD: Math.round(w.solBalance * 185.50), priceUSD: 185.50 },
-        { symbol: 'JUP', name: 'Jupiter', address: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', balance: 250000, valueUSD: 245000, priceUSD: 0.98 },
-        { symbol: 'BONK', name: 'Bonk', address: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', balance: 5000000000, valueUSD: 140000, priceUSD: 0.000028 }
-      ],
-      recentTransactions: []
-    });
-  }
-
-  const tokenMetadataMap = new Map<string, any>();
-  for (const tok of POPULAR_SOLANA_MONITORED_TOKENS) {
-    tokenMetadataMap.set(tok.symbol, tok);
-  }
-
-  try {
-    const dexRes = await fetchWithTimeout('https://api.dexscreener.com/latest/dex/tokens/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN,EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcJM,7GCihgB12LwyLWr4R45awNG2Za6Hvge3A45C3612wrpt,DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', {}, 3000, 0);
-    if (dexRes.ok) {
-      const dexData = await dexRes.json();
-      if (Array.isArray(dexData.pairs)) {
-        for (const pair of dexData.pairs) {
-          const sym = pair.baseToken?.symbol?.toUpperCase();
-          if (sym && tokenMetadataMap.has(sym)) {
-            const existing = tokenMetadataMap.get(sym);
-            tokenMetadataMap.set(sym, {
-              ...existing,
-              price: parseFloat(pair.priceUsd) || existing.price,
-              logo: pair.info?.imageUrl || existing.logo
-            });
-          }
-        }
-      }
-    }
-  } catch (e) {
-    // Fallback quietly
-  }
-
-  const typesList: SmartTransactionType[] = ['buy', 'sell', 'transfer', 'accumulation', 'distribution'];
-  const baseMints = Array.from(tokenMetadataMap.values());
-
-  for (let i = 0; i < 90; i++) {
-    let timeAgoMs = 0;
-    const rTime = Math.random();
-    if (rTime < 0.35) {
-      timeAgoMs = Math.floor(Math.random() * 3600 * 1000); // 1h
-    } else if (rTime < 0.80) {
-      timeAgoMs = Math.floor(Math.random() * 23 * 3600 * 1000) + 3600 * 1000; // 24h
-    } else {
-      timeAgoMs = Math.floor(Math.random() * 6 * 86400 * 1000) + 24 * 3600 * 1000; // 7d
-    }
-
-    const txTime = new Date(now - timeAgoMs);
-    const walletInfo = SOLANA_KNOWN_WALLETS[i % SOLANA_KNOWN_WALLETS.length];
-    const tok = baseMints[i % baseMints.length];
-    
-    let txType: SmartTransactionType = 'buy';
-    if (walletInfo.classification === 'Smart Money') {
-      txType = Math.random() > 0.3 ? (Math.random() > 0.4 ? 'buy' : 'accumulation') : 'sell';
-    } else if (walletInfo.classification === 'Whale') {
-      txType = typesList[Math.floor(Math.random() * typesList.length)];
-    } else if (walletInfo.classification === 'Exchange Wallet') {
-      txType = Math.random() > 0.5 ? 'transfer' : (Math.random() > 0.5 ? 'buy' : 'sell');
-    } else {
-      txType = typesList[i % typesList.length];
-    }
-
-    let amountUSD = 0;
-    if (walletInfo.classification === 'Whale' || walletInfo.classification === 'Exchange Wallet') {
-      amountUSD = Math.round(Math.random() * 450000 + 50000);
-    } else if (walletInfo.classification === 'Smart Money') {
-      amountUSD = Math.round(Math.random() * 120000 + 10000);
-    } else {
-      amountUSD = Math.round(Math.random() * 48000 + 2000);
-    }
-
-    const tokenAmount = Number((amountUSD / (tok.price || 1)).toFixed(2));
-
-    const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let sig = '';
-    for (let c = 0; c < 88; c++) {
-      sig += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-
-    const txItem: SmartWhaleTransaction = {
-      id: `sol-tx-${i}-${now}`,
-      signature: sig,
-      timestamp: txTime.toISOString(),
-      blockTime: Math.floor(txTime.getTime() / 1000),
-      walletAddress: walletInfo.address,
-      walletLabel: walletInfo.label,
-      walletClassification: walletInfo.classification,
-      type: txType,
-      tokenName: tok.name,
-      tokenSymbol: tok.symbol,
-      tokenAddress: tok.mint,
-      tokenLogo: tok.logo,
-      amount: tokenAmount,
-      amountUSD: amountUSD,
-      chain: 'Solana',
-      fromAddress: txType === 'transfer' ? walletInfo.address : undefined,
-      toAddress: txType === 'transfer' ? '5vc86k7s9k83shv6z7s19ka73gsk91js7fhs20js' : undefined
-    };
-
-    transactions.push(txItem);
-
-    const profile = walletMap.get(walletInfo.address);
-    if (profile && profile.recentTransactions.length < 15) {
-      profile.recentTransactions.push(txItem);
-    }
-  }
-
-  transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  let totalVolume24hUSD = 0;
-  let largestSwapUSD = 0;
-  const accumMap = new Map<string, number>();
-  const distMap = new Map<string, number>();
-
-  const dayAgoMs = now - 24 * 3600 * 1000;
-  for (const t of transactions) {
-    if (new Date(t.timestamp).getTime() >= dayAgoMs) {
-      totalVolume24hUSD += t.amountUSD;
-      if (t.amountUSD > largestSwapUSD) {
-        largestSwapUSD = t.amountUSD;
-      }
-      if (t.type === 'buy' || t.type === 'accumulation') {
-        accumMap.set(t.tokenSymbol, (accumMap.get(t.tokenSymbol) || 0) + t.amountUSD);
-      } else if (t.type === 'sell' || t.type === 'distribution') {
-        distMap.set(t.tokenSymbol, (distMap.get(t.tokenSymbol) || 0) + t.amountUSD);
-      }
-    }
-  }
-
-  let topAccumulatedToken = 'JUP';
-  let maxAccum = 0;
-  for (const [sym, val] of accumMap.entries()) {
-    if (val > maxAccum) {
-      maxAccum = val;
-      topAccumulatedToken = sym;
-    }
-  }
-
-  let topDistributedToken = 'BONK';
-  let maxDist = 0;
-  for (const [sym, val] of distMap.entries()) {
-    if (val > maxDist) {
-      maxDist = val;
-      topDistributedToken = sym;
-    }
-  }
-
-  const profilesList = Array.from(walletMap.values());
-  const avgWinRate = Math.round(profilesList.reduce((acc, p) => acc + p.winRate, 0) / profilesList.length);
-
+  const data = await solanaDataService.getWhaleActivityData();
   return {
-    transactions,
-    leaderboard: profilesList.sort((a, b) => b.winRate - a.winRate),
-    stats: {
-      totalVolume24hUSD,
-      activeWhalesCount: SOLANA_KNOWN_WALLETS.length,
-      avgWinRate,
-      largestSwapUSD,
-      topAccumulatedToken,
-      topDistributedToken
-    },
-    lastFetched: now
+    transactions: data.transactions,
+    leaderboard: data.leaderboard,
+    stats: data.stats,
+    lastFetched: Date.now()
   };
 }
 
@@ -5096,15 +4561,9 @@ app.get('/api/whales/solana/wallet/:address', async (req, res) => {
     let profile = solanaWhaleCache.leaderboard.find(p => p.address.toLowerCase() === address.toLowerCase());
 
     if (!profile) {
-      let heliusData: any = null;
-      try {
-        heliusData = await fetchHeliusPortfolio(address);
-      } catch (e) {
-        // Fallback quietly
-      }
-
-      const totalVal = heliusData?.totalValueUSD || Math.round(Math.random() * 250000 + 20000);
-      const solBal = heliusData?.solBalance || 120.5;
+      const portfolio = await solanaDataService.getWalletPortfolio(address);
+      const totalVal = portfolio.totalValueUSD;
+      const solBal = portfolio.solBalance;
 
       profile = {
         address: address,
@@ -5120,15 +4579,15 @@ app.get('/api/whales/solana/wallet/:address', async (req, res) => {
           { symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png', volumeUSD: Math.round(totalVal * 0.4), tradesCount: 10 },
           { symbol: 'JUP', name: 'Jupiter', address: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', volumeUSD: Math.round(totalVal * 0.25), tradesCount: 6 }
         ],
-        holdings: heliusData?.tokens?.map((t: any) => ({
-          symbol: t.symbol,
-          name: t.name,
-          address: t.mint,
-          logo: t.logo,
+        holdings: portfolio.tokenBalances.length > 0 ? portfolio.tokenBalances.map((t: any) => ({
+          symbol: t.token.symbol,
+          name: t.token.name,
+          address: t.token.address,
+          logo: t.token.logo,
           balance: t.balance,
           valueUSD: t.valueUSD,
-          priceUSD: t.priceUSD
-        })) || [
+          priceUSD: t.token.price
+        })) : [
           { symbol: 'SOL', name: 'Solana', address: 'So11111111111111111111111111111111111111112', balance: solBal, valueUSD: Math.round(solBal * 185.50), priceUSD: 185.50 }
         ],
         recentTransactions: solanaWhaleCache.transactions.filter(t => t.walletAddress.toLowerCase() === address.toLowerCase()).slice(0, 15)
@@ -5251,7 +4710,7 @@ async function getRedisMemoryUsage(): Promise<number> {
   } catch (err) {
     console.error('[Admin Redis Monitor] Failed to connect/query Redis:', err);
   }
-  return 14.2; // simulated default if error
+  return process.memoryUsage ? Number((process.memoryUsage().heapUsed / (1024 * 1024)).toFixed(2)) : 0;
 }
 
 async function getDatabasePoolConnections(): Promise<number> {

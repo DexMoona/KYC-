@@ -226,41 +226,33 @@ export function LivePriceProvider({ children }: LivePriceProviderProps) {
     };
   }, []);
 
-  // Micro-fluctuations interval to update subscribed prices when there are no live trades
+  // Periodic synchronization with live API for subscribed tokens
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (feedState !== 'live') return;
-
-      const now = Date.now();
+    const syncSubscribedPrices = async () => {
       const currentSubscriptions = subscriptionsRef.current;
-      const currentPrices = pricesRef.current;
-      
-      let updated = false;
-      const nextPrices = { ...currentPrices };
+      const addresses = Object.keys(currentSubscriptions).filter(
+        addr => currentSubscriptions[addr] && currentSubscriptions[addr].size > 0
+      );
+      if (addresses.length === 0) return;
 
-      Object.keys(currentSubscriptions).forEach(address => {
-        const subs = currentSubscriptions[address];
-        if (subs && subs.size > 0) {
-          const priceInfo = currentPrices[address];
-          if (priceInfo) {
-            // If the token hasn't had an update in the last 1.2s, simulate a tiny tick
-            if (now - priceInfo.lastUpdated >= 1200) {
-              const basePrice = priceInfo.price;
-              if (basePrice > 0) {
-                // ±0.02% micro fluctuation
-                const percentageChange = (Math.random() * 0.04 - 0.02) / 100;
-                const nextPrice = basePrice * (1 + percentageChange);
-
+      for (const address of addresses) {
+        try {
+          const res = await fetch(`/api/tokens/${address}`, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(4000)
+          });
+          if (res.ok) {
+            const token = await res.json();
+            if (token && typeof token.price === 'number' && token.price > 0) {
+              setPrices(prev => {
+                const existing = prev[address];
+                const oldPrice = existing?.price || 0;
                 let flash: 'up' | 'down' | null = null;
-                if (nextPrice > basePrice) flash = 'up';
-                else if (nextPrice < basePrice) flash = 'down';
+                if (oldPrice > 0) {
+                  if (token.price > oldPrice) flash = 'up';
+                  else if (token.price < oldPrice) flash = 'down';
+                }
 
-                const startPrice24h = basePrice / (1 + priceInfo.priceChange24h / 100);
-                const updatedChange24h = startPrice24h > 0
-                  ? ((nextPrice - startPrice24h) / startPrice24h) * 100
-                  : priceInfo.priceChange24h;
-
-                // Handle flash timeouts
                 if (flash) {
                   if (flashTimeoutsRef.current[address]) {
                     clearTimeout(flashTimeoutsRef.current[address]);
@@ -268,36 +260,34 @@ export function LivePriceProvider({ children }: LivePriceProviderProps) {
                   flashTimeoutsRef.current[address] = setTimeout(() => {
                     setPrices(p => {
                       if (p[address]) {
-                        return {
-                          ...p,
-                          [address]: { ...p[address], flash: null }
-                        };
+                        return { ...p[address], flash: null };
                       }
                       return p;
                     });
                   }, 600);
                 }
 
-                nextPrices[address] = {
-                  price: nextPrice,
-                  priceChange24h: updatedChange24h,
-                  flash: flash,
-                  lastUpdated: now
+                return {
+                  ...prev,
+                  [address]: {
+                    price: token.price,
+                    priceChange24h: token.priceChange24h || 0,
+                    flash,
+                    lastUpdated: Date.now()
+                  }
                 };
-                updated = true;
-              }
+              });
             }
           }
+        } catch {
+          // Ignore transient polling timeout
         }
-      });
-
-      if (updated) {
-        setPrices(nextPrices);
       }
-    }, 1000);
+    };
 
+    const interval = setInterval(syncSubscribedPrices, 8000);
     return () => clearInterval(interval);
-  }, [feedState]);
+  }, []);
 
   const updatePrice = React.useCallback((tokenAddress: string, newPrice: number, priceChange24h?: number) => {
     if (!tokenAddress || newPrice <= 0) return;
